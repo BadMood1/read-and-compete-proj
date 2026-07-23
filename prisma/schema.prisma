@@ -7,6 +7,14 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  FINISHED
+  PAUSED
+  DROPPED
+}
+
 // OAuth-профиль GitHub или Google, привязанный к пользователю.
 model Account {
   id                String  @id @default(cuid())
@@ -52,8 +60,56 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  library  UserBook[]
 
   @@map("users")
+}
+
+// Конкретное издание книги, полученное из Google Books.
+model Book {
+  id            String   @id @default(cuid())
+  googleBooksId String   @unique @map("google_books_id")
+  title         String
+  subtitle      String?
+  authors       String[]
+  description   String?  @db.Text
+  coverUrl      String?  @map("cover_url")
+  pageCount     Int?     @map("page_count")
+  isbn10        String?  @map("isbn_10")
+  isbn13        String?  @map("isbn_13")
+  publisher     String?
+  publishedDate String?  @map("published_date")
+  categories    String[]
+  language      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  readers UserBook[]
+
+  @@map("books")
+}
+
+// Состояние книги внутри личной библиотеки пользователя.
+model UserBook {
+  id         String        @id @default(cuid())
+  userId     String        @map("user_id")
+  bookId     String        @map("book_id")
+  status     ReadingStatus @default(WANT_TO_READ)
+  rating     Int?
+  isFavorite Boolean       @default(false) @map("is_favorite")
+  startedAt  DateTime?     @map("started_at")
+  finishedAt DateTime?     @map("finished_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  // Библиотека удаляется вместе с пользователем, но не удаляет общую книгу.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  // Одна книга может находиться в библиотеке пользователя только один раз.
+  @@unique([userId, bookId])
+  @@index([userId, status]) // ускоряет поиск библиотеки пользователя с фильтром по статусу
+  @@map("user_books") // модель UserBook хранится в PostgreSQL-таблице user_books
 }
 
 // Одноразовый токен для будущего входа или подтверждения по email.
