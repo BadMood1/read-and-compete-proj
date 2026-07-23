@@ -9,8 +9,16 @@ const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
     throw new Error("DATABASE_URL is not configured");
 }
+
+const connectionUrl = new URL(connectionString);
+
+// `require` сейчас означает строгую проверку TLS, поэтому фиксируем это явно.
+if (connectionUrl.searchParams.get("sslmode") === "require") {
+    connectionUrl.searchParams.set("sslmode", "verify-full");
+}
+
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionUrl.toString(),
 });
 const prisma =
     globalForPrisma.prisma ||

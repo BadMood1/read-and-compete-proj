@@ -6,6 +6,9 @@ import prisma from "@/lib/prisma";
 
 // Единая конфигурация авторизации для Route Handler и Server Components.
 export const { auth, handlers, signIn, signOut } = NextAuth({
+  // Разрешаем Auth.js строить callback URL из host текущего запроса.
+  trustHost: true,
+
   // Адаптер сохраняет пользователей, OAuth-аккаунты и сессии в PostgreSQL.
   adapter: PrismaAdapter(prisma),
 
