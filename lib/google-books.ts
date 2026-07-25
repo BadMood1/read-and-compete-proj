@@ -46,11 +46,67 @@ export type BookSearchResult = {
     language: string | null;
 };
 
-const MAX_ATTEMPTS = 2;
-const RETRY_DELAY_MS = 400;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1000;
 
 function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getGoogleBooksApiKey() {
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+
+    if (!apiKey) {
+        throw new Error("GOOGLE_BOOKS_API_KEY is not configured");
+    }
+
+    return apiKey;
+}
+
+async function fetchGoogleBooks(url: URL) {
+    // Три попытки используются и поиском, и запросом отдельной книги.
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        let response: Response;
+
+        try {
+            response = await fetch(url, {
+                cache: "no-store",
+            });
+        } catch (error) {
+            // Последнюю сетевую ошибку передаём вызывающему коду.
+            if (attempt === MAX_ATTEMPTS) {
+                throw error;
+            }
+
+            await wait(RETRY_DELAY_MS);
+            continue;
+        }
+
+        if (response.ok) {
+            return response;
+        }
+
+        // 429 и 5xx могут быть временными; остальные статусы повторять не нужно.
+        const canRetry = response.status === 429 || response.status >= 500;
+
+        if (!canRetry || attempt === MAX_ATTEMPTS) {
+            return response;
+        }
+
+        await wait(RETRY_DELAY_MS);
+    }
+
+    // Цикл всегда возвращает Response или выбрасывает сетевую ошибку.
+    throw new Error("Google Books request failed");
+}
+
+function htmlToPlainText(html: string) {
+    return html
+        .replace(/<\/p>/gi, "\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 }
 
 // Преобразуем ответ google к нужному нам
@@ -67,7 +123,7 @@ function mapGoogleBook(volume: GoogleBookVolume): BookSearchResult {
         title: info.title,
         subtitle: info.subtitle ?? null,
         authors: info.authors ?? [],
-        description: info.description ?? null,
+        description: info.description ? htmlToPlainText(info.description) : null,
         coverUrl: info.imageLinks?.thumbnail?.replace(/^http:/, "https:") ?? null,
         pageCount: info.pageCount ?? null,
         isbn10,
@@ -86,54 +142,48 @@ export async function searchGoogleBooks(query: string): Promise<BookSearchResult
         return [];
     }
 
-    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
-
-    if (!apiKey) {
-        throw new Error("GOOGLE_BOOKS_API_KEY is not configured");
-    }
-
     const url = new URL("https://www.googleapis.com/books/v1/volumes");
 
     url.searchParams.set("q", normalizedQuery);
-    url.searchParams.set("key", apiKey);
+    url.searchParams.set("key", getGoogleBooksApiKey());
     url.searchParams.set("maxResults", "20");
     url.searchParams.set("printType", "books");
     url.searchParams.set("orderBy", "relevance");
 
-    // Делаем основной запрос и только один повтор при временной ошибке.
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        let response: Response;
+    const response = await fetchGoogleBooks(url);
 
-        try {
-            response = await fetch(url, {
-                cache: "no-store",
-            });
-        } catch (error) {
-            // Сетевую ошибку повторяем один раз, затем передаём выше.
-            if (attempt === MAX_ATTEMPTS) {
-                throw error;
-            }
-
-            await wait(RETRY_DELAY_MS);
-            continue;
-        }
-
-        if (response.ok) {
-            const data = (await response.json()) as GoogleBooksResponse;
-
-            return (data.items ?? []).map(mapGoogleBook); // все из items прогоняем через наш map
-        }
-
-        // 429 и 5xx обычно временные; остальные статусы повторять бесполезно.
-        const canRetry = response.status === 429 || response.status >= 500;
-
-        if (!canRetry || attempt === MAX_ATTEMPTS) {
-            throw new Error(`Google Books request failed: ${response.status}`);
-        }
-
-        await wait(RETRY_DELAY_MS);
+    if (!response.ok) {
+        throw new Error(`Google Books request failed: ${response.status}`);
     }
 
-    // Цикл всегда возвращает данные или выбрасывает ошибку.
-    throw new Error("Google Books request failed");
+    const data = (await response.json()) as GoogleBooksResponse;
+
+    return (data.items ?? []).map(mapGoogleBook);
+}
+
+export async function getGoogleBookById(googleBooksId: string): Promise<BookSearchResult | null> {
+    const normalizedId = googleBooksId.trim();
+
+    if (!normalizedId) {
+        return null;
+    }
+
+    // ID является частью пути, поэтому кодируем его отдельно от API-ключа.
+    const url = new URL(`https://www.googleapis.com/books/v1/volumes/${encodeURIComponent(normalizedId)}`);
+
+    url.searchParams.set("key", getGoogleBooksApiKey());
+
+    const response = await fetchGoogleBooks(url);
+
+    if (response.status === 404) {
+        return null;
+    }
+
+    if (!response.ok) {
+        throw new Error(`Google Books volume request failed: ${response.status}`);
+    }
+
+    const volume = (await response.json()) as GoogleBookVolume;
+
+    return mapGoogleBook(volume);
 }

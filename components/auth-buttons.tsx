@@ -69,7 +69,7 @@ export function SignInButton({ provider }: { provider: OAuthProvider }) {
         type="submit"
         variant={provider === "github" ? "default" : "outline"}
         size="lg"
-        className="w-full"
+        className="h-11 w-full rounded-xl"
       >
         {content.icon}
         {content.label}
@@ -85,7 +85,7 @@ export function SignOutButton() {
         "use server";
 
         // Удаляем текущую сессию и возвращаем пользователя на главную.
-        await signOut({ redirectTo: "/" });
+        await signOut({ redirectTo: "/login" });
       }}
       className="w-full"
     >

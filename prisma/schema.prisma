@@ -84,7 +84,7 @@ model Book {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  readers UserBook[]
+  readers UserBook[] // книга у конкретных пользователей связь
 
   @@map("books")
 }
@@ -107,7 +107,7 @@ model UserBook {
   book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
 
   // Одна книга может находиться в библиотеке пользователя только один раз.
-  @@unique([userId, bookId])
+  @@unique([userId, bookId]) // userId_bookId составной уникальный ключ создался
   @@index([userId, status]) // ускоряет поиск библиотеки пользователя с фильтром по статусу
   @@map("user_books") // модель UserBook хранится в PostgreSQL-таблице user_books
 }
