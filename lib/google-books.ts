@@ -48,6 +48,15 @@ export type BookSearchResult = {
 
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
+const SEARCH_CACHE_SECONDS = 900;
+
+// Настройки определяют, нужно ли кэшировать конкретный запрос к Google Books.
+type GoogleBooksRequestOptions = {
+    cache?: RequestCache;
+    next?: {
+        revalidate?: number;
+    };
+};
 
 function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,15 +72,19 @@ function getGoogleBooksApiKey() {
     return apiKey;
 }
 
-async function fetchGoogleBooks(url: URL) {
+// Выполняет запрос к Google Books и повторяет его при временных ошибках.
+async function fetchGoogleBooks(
+    url: URL,
+    options: GoogleBooksRequestOptions = {
+        cache: "no-store",
+    },
+) {
     // Три попытки используются и поиском, и запросом отдельной книги.
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         let response: Response;
 
         try {
-            response = await fetch(url, {
-                cache: "no-store",
-            });
+            response = await fetch(url, options);
         } catch (error) {
             // Последнюю сетевую ошибку передаём вызывающему коду.
             if (attempt === MAX_ATTEMPTS) {
@@ -150,7 +163,13 @@ export async function searchGoogleBooks(query: string): Promise<BookSearchResult
     url.searchParams.set("printType", "books");
     url.searchParams.set("orderBy", "relevance");
 
-    const response = await fetchGoogleBooks(url);
+    // Одинаковый поиск в течение 15 минут берётся из кэша Next.js,
+    // поэтому возврат со страницы книги не расходует запрос Google Books повторно.
+    const response = await fetchGoogleBooks(url, {
+        next: {
+            revalidate: SEARCH_CACHE_SECONDS,
+        },
+    });
 
     if (!response.ok) {
         throw new Error(`Google Books request failed: ${response.status}`);

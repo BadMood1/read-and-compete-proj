@@ -17,7 +17,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
     return (
         <main className="flex-1">
-            <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
+            <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
                 {!query ? (
                     <div className="">
                         <p className="text-sm font-semibold text-primary">Поиск книг</p>
@@ -100,7 +100,7 @@ async function BookSearchResults({ query }: { query: string }) {
     }
 
     return (
-        <div className="mt-12">
+        <div className="mt-10">
             <div className="mb-7 flex items-end justify-between gap-4">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-primary">
@@ -122,7 +122,11 @@ async function BookSearchResults({ query }: { query: string }) {
             ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                     {books.map((book) => (
-                        <BookSearchResultCard key={book.googleBooksId} book={book} />
+                        <BookSearchResultCard
+                            key={book.googleBooksId}
+                            book={book}
+                            returnTo={`/?${new URLSearchParams({ q: query }).toString()}`}
+                        />
                     ))}
                 </div>
             )}

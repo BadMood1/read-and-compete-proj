@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import AddToLibraryButton from "@/components/add-to-library-button";
+import BookLibraryButton from "@/components/book-library-button";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 
@@ -12,10 +12,32 @@ type BookPageProps = {
     params: Promise<{
         googleBooksId: string;
     }>;
+    searchParams: Promise<{
+        returnTo?: string | string[];
+    }>;
 };
 
-export default async function BookPage({ params }: BookPageProps) {
+// Принимаем только безопасный путь внутри приложения, иначе возвращаем на главную.
+function getSafeReturnPath(rawReturnTo: string | string[] | undefined) {
+    const returnTo = Array.isArray(rawReturnTo) ? rawReturnTo[0] : rawReturnTo;
+
+    if (!returnTo || !returnTo.startsWith("/") || returnTo.startsWith("//")) {
+        return "/";
+    }
+
+    // Разрешаем возврат только на главную или в библиотеку внутри приложения.
+    const parsedUrl = new URL(returnTo, "http://internal");
+    const isAllowedPath = parsedUrl.pathname === "/" || parsedUrl.pathname === "/library";
+
+    return isAllowedPath ? `${parsedUrl.pathname}${parsedUrl.search}` : "/";
+}
+
+export default async function BookPage({ params, searchParams }: BookPageProps) {
     const { googleBooksId } = await params;
+
+    // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
+    const returnTo = getSafeReturnPath((await searchParams).returnTo);
+    const backLabel = returnTo.startsWith("/library") ? "Назад к библиотеке" : "Назад к поиску";
 
     // Загружаем конкретную книгу по ID из адресной строки.
     const book = await getGoogleBookById(googleBooksId);
@@ -52,14 +74,14 @@ export default async function BookPage({ params }: BookPageProps) {
     ].filter(Boolean);
 
     return (
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-            {/* Возвращаем пользователя к поиску без зависимости от истории браузера. */}
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+            {/* returnTo сохраняет источник перехода, но принимается только после проверки пути. */}
             <Link
-                href="/"
+                href={returnTo}
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
             >
                 <ArrowLeft className="size-4" aria-hidden="true" />
-                Назад к поиску
+                {backLabel}
             </Link>
 
             {/* На планшете описание занимает всю нижнюю строку, на desktop возвращается вправо. */}
@@ -127,7 +149,7 @@ export default async function BookPage({ params }: BookPageProps) {
                 </section>
 
                 {/* Начальное состояние приходит с сервера и сохраняется после перезагрузки. */}
-                <AddToLibraryButton
+                <BookLibraryButton
                     googleBooksId={book.googleBooksId}
                     defaultIsInLibrary={Boolean(userBook)}
                 />

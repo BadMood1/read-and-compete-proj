@@ -3,17 +3,29 @@ import Image from "next/image";
 import Link from "next/link";
 import type { BookSearchResult } from "@/lib/google-books";
 
-export function BookSearchResultCard({ book }: { book: BookSearchResult }) {
+type BookSearchResultCardProps = {
+    book: BookSearchResult;
+    // Адрес поиска, на который нужно вернуться со страницы книги.
+    returnTo: string;
+};
+
+// Показывает один результат Google Books и открывает его полную страницу.
+export function BookSearchResultCard({ book, returnTo }: BookSearchResultCardProps) {
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
         book.language?.toUpperCase(),
     ].filter(Boolean);
 
+    // Передаём поисковый запрос через query-параметр страницы книги.
+    // returnTo = "/?q=Harry+Potter"
+    const bookPath = `/books/${encodeURIComponent(book.googleBooksId)}`;
+    const bookHref = `${bookPath}?${new URLSearchParams({ returnTo }).toString()}`;
+
     return (
         <article>
             <Link
-                href={`/books/${encodeURIComponent(book.googleBooksId)}`}
+                href={bookHref}
                 aria-label={`Открыть книгу «${book.title}»`}
                 className="grid grid-cols-[88px_1fr] gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm
                  transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:grid-cols-[104px_1fr] sm:gap-5"
