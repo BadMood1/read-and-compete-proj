@@ -1,4 +1,4 @@
-import { searchGoogleBooks } from "@/lib/google-books";
+import { searchGoogleBooks } from "@/lib/books/google-books-api";
 
 // Временный endpoint для ручной проверки Google Books в браузере.
 export async function GET(request: Request) {

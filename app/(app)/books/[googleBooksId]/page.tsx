@@ -1,11 +1,12 @@
-import { getGoogleBookById } from "@/lib/google-books";
+import { getGoogleBookById } from "@/lib/books/google-books-api";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import BookLibraryButton from "@/components/book-library-button";
+import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+import { getValidatedBookDetailsReturnPath } from "@/lib/books/book-details-navigation";
+import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
 
 type BookPageProps = {
     // В Next.js 16 динамические параметры страницы приходят как Promise.
@@ -13,31 +14,20 @@ type BookPageProps = {
         googleBooksId: string;
     }>;
     searchParams: Promise<{
-        returnTo?: string | string[];
+        returnPath?: string | string[];
     }>;
 };
-
-// Принимаем только безопасный путь внутри приложения, иначе возвращаем на главную.
-function getSafeReturnPath(rawReturnTo: string | string[] | undefined) {
-    const returnTo = Array.isArray(rawReturnTo) ? rawReturnTo[0] : rawReturnTo;
-
-    if (!returnTo || !returnTo.startsWith("/") || returnTo.startsWith("//")) {
-        return "/";
-    }
-
-    // Разрешаем возврат только на главную или в библиотеку внутри приложения.
-    const parsedUrl = new URL(returnTo, "http://internal");
-    const isAllowedPath = parsedUrl.pathname === "/" || parsedUrl.pathname === "/library";
-
-    return isAllowedPath ? `${parsedUrl.pathname}${parsedUrl.search}` : "/";
-}
 
 export default async function BookPage({ params, searchParams }: BookPageProps) {
     const { googleBooksId } = await params;
 
     // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
-    const returnTo = getSafeReturnPath((await searchParams).returnTo);
-    const backLabel = returnTo.startsWith("/library") ? "Назад к библиотеке" : "Назад к поиску";
+    const bookDetailsReturnPath = getValidatedBookDetailsReturnPath(
+        (await searchParams).returnPath,
+    );
+    const backLinkLabel = bookDetailsReturnPath.startsWith("/library")
+        ? "Назад к библиотеке"
+        : "Назад к поиску";
 
     // Загружаем конкретную книгу по ID из адресной строки.
     const book = await getGoogleBookById(googleBooksId);
@@ -52,20 +42,9 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     // Проверяем существует ли связь UserBook,
     // чтобы после перезагрузки показать правильное состояние кнопки.
-    const userBook = session?.user?.id
-        ? await prisma.userBook.findFirst({
-              where: {
-                  userId: session.user.id,
-                  book: {
-                      googleBooksId: book.googleBooksId,
-                  },
-              },
-              // Для проверки существования достаточно получить только ID связи.
-              select: {
-                  id: true,
-              },
-          })
-        : null;
+    const isBookAlreadyInUserLibrary = session?.user?.id
+        ? await isGoogleBookInUserLibrary(session.user.id, book.googleBooksId)
+        : false;
 
     const details = [
         book.publishedDate?.slice(0, 4),
@@ -75,13 +54,13 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
-            {/* returnTo сохраняет источник перехода, но принимается только после проверки пути. */}
+            {/* returnPath сохраняет источник перехода, но принимается только после проверки пути. */}
             <Link
-                href={returnTo}
+                href={bookDetailsReturnPath}
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
             >
                 <ArrowLeft className="size-4" aria-hidden="true" />
-                {backLabel}
+                {backLinkLabel}
             </Link>
 
             {/* На планшете описание занимает всю нижнюю строку, на desktop возвращается вправо. */}
@@ -149,9 +128,9 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
                 </section>
 
                 {/* Начальное состояние приходит с сервера и сохраняется после перезагрузки. */}
-                <BookLibraryButton
+                <AddOrRemoveBookFromLibraryButton
                     googleBooksId={book.googleBooksId}
-                    defaultIsInLibrary={Boolean(userBook)}
+                    isInitiallyInUserLibrary={isBookAlreadyInUserLibrary}
                 />
             </article>
         </main>

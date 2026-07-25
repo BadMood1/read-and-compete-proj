@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    addBookToLibrary,
-    removeBookFromLibrary,
-    type BookLibraryActionResult,
+    addBookToCurrentUserLibrary,
+    removeBookFromCurrentUserLibrary,
+    type BookLibraryMutationResult,
 } from "@/app/(app)/books/actions";
 import {
     AlertDialog,
@@ -20,33 +20,37 @@ import { Button } from "@/components/ui/button";
 import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
-type BookLibraryButtonProps = {
+type AddOrRemoveBookFromLibraryButtonProps = {
     // ID передаём в Server Action, чтобы там найти или создать книгу.
     googleBooksId: string;
 
     // Сервер сообщает, есть ли книга в библиотеке до загрузки клиентского JS.
-    defaultIsInLibrary: boolean;
+    isInitiallyInUserLibrary: boolean;
 };
 
 // Помогает понять, какая операция сейчас выполняется и какой текст показать.
-type LibraryOperation = "add" | "remove";
+type BookLibraryOperation = "add" | "remove";
 
 // Одна кнопка добавляет книгу, а для удаления сначала открывает подтверждение.
-export default function BookLibraryButton({ googleBooksId, defaultIsInLibrary }: BookLibraryButtonProps) {
-    // Локально переключаем кнопку сразу после успешного добавления.
-    const [isInLibrary, setIsInLibrary] = useState(defaultIsInLibrary);
+export default function AddOrRemoveBookFromLibraryButton({
+    googleBooksId,
+    isInitiallyInUserLibrary,
+}: AddOrRemoveBookFromLibraryButtonProps) {
+    // Локально переключаем кнопку сразу после успешного добавления или удаления.
+    const [isBookInUserLibrary, setIsBookInUserLibrary] = useState(isInitiallyInUserLibrary);
 
     // Текст ошибки показываем рядом с кнопкой, не ломая всю страницу.
     const [error, setError] = useState<string | null>(null);
 
     // useTransition сообщает, пока ли выполняется асинхронный Server Action.
     const [isPending, startTransition] = useTransition();
-    const [pendingOperation, setPendingOperation] = useState<LibraryOperation | null>(null);
+    const [pendingBookLibraryOperation, setPendingBookLibraryOperation] =
+        useState<BookLibraryOperation | null>(null);
 
     // Общая обработка результата для добавления и удаления.
-    function runLibraryAction(
-        operation: LibraryOperation,
-        action: () => Promise<BookLibraryActionResult>,
+    function runBookLibraryMutation(
+        operation: BookLibraryOperation,
+        mutation: () => Promise<BookLibraryMutationResult>,
     ) {
         // Не отправляем вторую мутацию, пока первая ещё выполняется.
         if (isPending) {
@@ -54,12 +58,12 @@ export default function BookLibraryButton({ googleBooksId, defaultIsInLibrary }:
         }
 
         setError(null);
-        setPendingOperation(operation);
+        setPendingBookLibraryOperation(operation);
 
         // Transition даёт pending-состояние, пока Server Action работает с БД.
         startTransition(async () => {
             try {
-                const result = await action();
+                const result = await mutation();
 
                 // Ожидаемые ошибки action возвращает как результат, а не исключение.
                 if (!result.success) {
@@ -68,44 +72,46 @@ export default function BookLibraryButton({ googleBooksId, defaultIsInLibrary }:
                 }
 
                 // Сервер возвращает итоговое состояние после добавления или удаления.
-                setIsInLibrary(result.isInLibrary);
+                setIsBookInUserLibrary(result.isBookInUserLibrary);
             } catch {
                 // Сюда попадают неожиданные ошибки БД, сети или Google Books.
                 setError("Не удалось изменить библиотеку. Попробуйте ещё раз.");
             } finally {
-                setPendingOperation(null);
+                setPendingBookLibraryOperation(null);
             }
         });
     }
 
     // Добавляем только если книги ещё нет в библиотеке.
-    function handleAddBook() {
-        if (!isInLibrary) {
-            runLibraryAction("add", () => addBookToLibrary(googleBooksId));
+    function handleAddBookToLibrary() {
+        if (!isBookInUserLibrary) {
+            runBookLibraryMutation("add", () => addBookToCurrentUserLibrary(googleBooksId));
         }
     }
 
     // Удаляем только если книга действительно находится в библиотеке.
-    function handleRemoveBook() {
-        if (isInLibrary) {
-            runLibraryAction("remove", () => removeBookFromLibrary(googleBooksId));
+    function handleRemoveBookFromLibrary() {
+        if (isBookInUserLibrary) {
+            runBookLibraryMutation("remove", () =>
+                removeBookFromCurrentUserLibrary(googleBooksId),
+            );
         }
     }
 
     // Текст кнопки зависит от текущей операции и наличия книги в библиотеке.
     const buttonLabel =
-        pendingOperation === "add"
+        pendingBookLibraryOperation === "add"
             ? "Добавляем..."
-            : pendingOperation === "remove"
+            : pendingBookLibraryOperation === "remove"
               ? "Удаляем..."
-              : isInLibrary
+              : isBookInUserLibrary
                 ? "Уже в библиотеке"
                 : "Добавить в библиотеку";
 
     return (
         <div className="md:col-span-2 lg:col-span-1 lg:col-start-2">
             {/* Для сохранённой книги кнопка сначала открывает подтверждение удаления. */}
-            {isInLibrary ? (
+            {isBookInUserLibrary ? (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button
@@ -134,7 +140,7 @@ export default function BookLibraryButton({ googleBooksId, defaultIsInLibrary }:
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleRemoveBook}>
+                            <AlertDialogAction onClick={handleRemoveBookFromLibrary}>
                                 <Trash2 aria-hidden="true" />
                                 Удалить
                             </AlertDialogAction>
@@ -145,7 +151,7 @@ export default function BookLibraryButton({ googleBooksId, defaultIsInLibrary }:
                 <Button
                     type="button"
                     size="lg"
-                    onClick={handleAddBook}
+                    onClick={handleAddBookToLibrary}
                     disabled={isPending}
                     className="w-full sm:w-auto"
                 >

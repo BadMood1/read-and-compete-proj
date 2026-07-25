@@ -30,7 +30,7 @@ type GoogleBookVolume = {
     };
 };
 
-export type BookSearchResult = {
+export type GoogleBookSearchResult = {
     googleBooksId: string;
     title: string;
     subtitle: string | null;
@@ -123,7 +123,7 @@ function htmlToPlainText(html: string) {
 }
 
 // Преобразуем ответ google к нужному нам
-function mapGoogleBook(volume: GoogleBookVolume): BookSearchResult {
+function mapGoogleBook(volume: GoogleBookVolume): GoogleBookSearchResult {
     const info = volume.volumeInfo;
 
     // международные идентификаторы изданий
@@ -148,7 +148,7 @@ function mapGoogleBook(volume: GoogleBookVolume): BookSearchResult {
     };
 }
 
-export async function searchGoogleBooks(query: string): Promise<BookSearchResult[]> {
+export async function searchGoogleBooks(query: string): Promise<GoogleBookSearchResult[]> {
     const normalizedQuery = query.trim();
 
     if (normalizedQuery.length < 2) {
@@ -180,7 +180,9 @@ export async function searchGoogleBooks(query: string): Promise<BookSearchResult
     return (data.items ?? []).map(mapGoogleBook);
 }
 
-export async function getGoogleBookById(googleBooksId: string): Promise<BookSearchResult | null> {
+export async function getGoogleBookById(
+    googleBooksId: string,
+): Promise<GoogleBookSearchResult | null> {
     const normalizedId = googleBooksId.trim();
 
     if (!normalizedId) {

@@ -1,16 +1,20 @@
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { BookSearchResult } from "@/lib/google-books";
+import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
+import type { GoogleBookSearchResult } from "@/lib/books/google-books-api";
 
-type BookSearchResultCardProps = {
-    book: BookSearchResult;
+type GoogleBookSearchResultCardProps = {
+    book: GoogleBookSearchResult;
     // Адрес поиска, на который нужно вернуться со страницы книги.
-    returnTo: string;
+    bookDetailsReturnPath: string;
 };
 
 // Показывает один результат Google Books и открывает его полную страницу.
-export function BookSearchResultCard({ book, returnTo }: BookSearchResultCardProps) {
+export function GoogleBookSearchResultCard({
+    book,
+    bookDetailsReturnPath,
+}: GoogleBookSearchResultCardProps) {
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
@@ -18,14 +22,16 @@ export function BookSearchResultCard({ book, returnTo }: BookSearchResultCardPro
     ].filter(Boolean);
 
     // Передаём поисковый запрос через query-параметр страницы книги.
-    // returnTo = "/?q=Harry+Potter"
-    const bookPath = `/books/${encodeURIComponent(book.googleBooksId)}`;
-    const bookHref = `${bookPath}?${new URLSearchParams({ returnTo }).toString()}`;
+    // bookDetailsReturnPath = "/?q=Harry+Potter"
+    const bookDetailsPath = createBookDetailsPath({
+        googleBooksId: book.googleBooksId,
+        returnPath: bookDetailsReturnPath,
+    });
 
     return (
         <article>
             <Link
-                href={bookHref}
+                href={bookDetailsPath}
                 aria-label={`Открыть книгу «${book.title}»`}
                 className="grid grid-cols-[88px_1fr] gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm
                  transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:grid-cols-[104px_1fr] sm:gap-5"

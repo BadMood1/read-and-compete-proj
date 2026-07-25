@@ -2,8 +2,10 @@ import type { ReadingStatus } from "@/app/generated/prisma/enums";
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
+import { READING_STATUS_LABELS } from "@/lib/books/reading-status-labels";
 
-type LibraryBookCardProps = {
+type UserLibraryBookCardProps = {
     status: ReadingStatus;
     book: {
         googleBooksId: string;
@@ -15,32 +17,25 @@ type LibraryBookCardProps = {
     };
 };
 
-// Переводим значения enum из БД в понятные подписи интерфейса.
-const READING_STATUS_LABELS: Record<ReadingStatus, string> = {
-    WANT_TO_READ: "Хочу прочитать",
-    READING: "Читаю",
-    FINISHED: "Прочитано",
-    PAUSED: "Отложено",
-    DROPPED: "Брошено",
-};
-
 // Показывает одну сохранённую книгу и ведёт на её полную страницу.
-export function LibraryBookCard({ status, book }: LibraryBookCardProps) {
+export function UserLibraryBookCard({ status, book }: UserLibraryBookCardProps) {
     // Собираем только существующие характеристики, чтобы не выводить пустые разделители.
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
     ].filter(Boolean);
 
-    // returnTo нужен, чтобы ссылка «Назад» вернула пользователя в библиотеку.
+    // returnPath нужен, чтобы ссылка «Назад» вернула пользователя в библиотеку.
     // добавляем в searchParams, на странице книги возьмем обратно
-    const bookPath = `/books/${encodeURIComponent(book.googleBooksId)}`;
-    const bookHref = `${bookPath}?${new URLSearchParams({ returnTo: "/library" }).toString()}`;
+    const bookDetailsPath = createBookDetailsPath({
+        googleBooksId: book.googleBooksId,
+        returnPath: "/library",
+    });
 
     return (
         <article>
             <Link
-                href={bookHref}
+                href={bookDetailsPath}
                 aria-label={`Открыть книгу «${book.title}»`}
                 className="grid min-h-48 grid-cols-[88px_1fr] gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:grid-cols-[104px_1fr] sm:gap-5"
             >

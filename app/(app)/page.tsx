@@ -1,9 +1,13 @@
 import { ArrowRight, Search } from "lucide-react";
 import { Suspense } from "react";
 
-import { BookSearchResultCard } from "@/components/book-search-result";
+import { GoogleBookSearchResultCard } from "@/components/books/google-book-search-result-card";
 import { Button } from "@/components/ui/button";
-import { searchGoogleBooks, type BookSearchResult } from "@/lib/google-books";
+import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
+import {
+    searchGoogleBooks,
+    type GoogleBookSearchResult,
+} from "@/lib/books/google-books-api";
 
 type HomeProps = {
     searchParams: Promise<{
@@ -76,8 +80,8 @@ export default async function Home({ searchParams }: HomeProps) {
                     </div>
                 ) : (
                     // Новый query перезапускает Suspense и снова показывает skeleton.
-                    <Suspense key={query} fallback={<BookResultsSkeleton query={query} />}>
-                        <BookSearchResults query={query} />
+                    <Suspense key={query} fallback={<GoogleBookSearchResultsSkeleton query={query} />}>
+                        <GoogleBookSearchResults query={query} />
                     </Suspense>
                 )}
             </section>
@@ -85,8 +89,8 @@ export default async function Home({ searchParams }: HomeProps) {
     );
 }
 
-async function BookSearchResults({ query }: { query: string }) {
-    let books: BookSearchResult[] = [];
+async function GoogleBookSearchResults({ query }: { query: string }) {
+    let books: GoogleBookSearchResult[] = [];
     let searchFailed = false;
 
     // Только этот компонент ждёт внешний API; форма и Navbar уже отображены.
@@ -122,10 +126,10 @@ async function BookSearchResults({ query }: { query: string }) {
             ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                     {books.map((book) => (
-                        <BookSearchResultCard
+                        <GoogleBookSearchResultCard
                             key={book.googleBooksId}
                             book={book}
-                            returnTo={`/?${new URLSearchParams({ q: query }).toString()}`}
+                            bookDetailsReturnPath={createSearchResultsReturnPath(query)}
                         />
                     ))}
                 </div>
@@ -134,7 +138,7 @@ async function BookSearchResults({ query }: { query: string }) {
     );
 }
 
-function BookResultsSkeleton({ query }: { query: string }) {
+function GoogleBookSearchResultsSkeleton({ query }: { query: string }) {
     return (
         <div className="mt-12" aria-busy="true" aria-live="polite">
             <div className="mb-7 flex items-end justify-between gap-4">

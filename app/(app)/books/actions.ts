@@ -1,15 +1,15 @@
 "use server";
 
 import { auth } from "@/auth";
-import { getGoogleBookById } from "@/lib/google-books";
+import { getGoogleBookById } from "@/lib/books/google-books-api";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 // Возможные ответы кнопке после добавления или удаления книги.
-export type BookLibraryActionResult =
+export type BookLibraryMutationResult =
     | {
           success: true;
-          isInLibrary: boolean;
+          isBookInUserLibrary: boolean;
       }
     | {
           success: false;
@@ -17,13 +17,15 @@ export type BookLibraryActionResult =
       };
 
 // После изменения БД просим Next.js заново получить данные книги и библиотеки.
-function revalidateLibraryViews(googleBooksId: string) {
+function revalidateBookDetailsAndLibraryPages(googleBooksId: string) {
     revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
     revalidatePath("/library");
 }
 
 // Добавляет книгу в библиотеку текущего пользователя.
-export async function addBookToLibrary(googleBooksId: string): Promise<BookLibraryActionResult> {
+export async function addBookToCurrentUserLibrary(
+    googleBooksId: string,
+): Promise<BookLibraryMutationResult> {
     // Server Action доступен как отдельный POST-запрос, поэтому авторизацию проверяем и здесь.
     const session = await auth();
 
@@ -96,14 +98,16 @@ export async function addBookToLibrary(googleBooksId: string): Promise<BookLibra
     });
 
     // Обновляем страницу книги и библиотеку после записи в БД.
-    revalidateLibraryViews(normalizedBookId);
+    revalidateBookDetailsAndLibraryPages(normalizedBookId);
 
     // Клиенту нужен только новый статус, а не вся внутренняя запись Prisma.
-    return { success: true, isInLibrary: true };
+    return { success: true, isBookInUserLibrary: true };
 }
 
 // Удаляет книгу только из библиотеки текущего пользователя.
-export async function removeBookFromLibrary(googleBooksId: string): Promise<BookLibraryActionResult> {
+export async function removeBookFromCurrentUserLibrary(
+    googleBooksId: string,
+): Promise<BookLibraryMutationResult> {
     // Удаление — отдельный публичный Server Action, поэтому снова проверяем сессию и входные данные.
     const session = await auth();
     const normalizedBookId = googleBooksId.trim();
@@ -136,7 +140,7 @@ export async function removeBookFromLibrary(googleBooksId: string): Promise<Book
         });
     }
 
-    revalidateLibraryViews(normalizedBookId);
+    revalidateBookDetailsAndLibraryPages(normalizedBookId);
 
-    return { success: true, isInLibrary: false };
+    return { success: true, isBookInUserLibrary: false };
 }
