@@ -1,5 +1,6 @@
 "use server";
 
+import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 import { getGoogleBookById } from "@/lib/books/google-books-api";
 import prisma from "@/lib/prisma";
@@ -16,6 +17,24 @@ export type BookLibraryMutationResult =
           error: string;
       };
 
+// Ответ после изменения статуса нужен dropdown, чтобы подтвердить сохранённое значение.
+export type UpdateCurrentUserBookReadingStatusResult =
+    | {
+          success: true;
+          readingStatus: ReadingStatusValue;
+      }
+    | {
+          success: false;
+          error: string;
+      };
+
+const ALLOWED_READING_STATUSES = Object.values(ReadingStatus);
+
+// TypeScript проверяет наш код, а эта функция защищает Server Action от произвольного POST-запроса.
+function isReadingStatus(value: string): value is ReadingStatusValue {
+    return ALLOWED_READING_STATUSES.some((readingStatus) => readingStatus === value);
+}
+
 // После изменения БД просим Next.js заново получить данные книги и библиотеки.
 function revalidateBookDetailsAndLibraryPages(googleBooksId: string) {
     revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
@@ -23,9 +42,7 @@ function revalidateBookDetailsAndLibraryPages(googleBooksId: string) {
 }
 
 // Добавляет книгу в библиотеку текущего пользователя.
-export async function addBookToCurrentUserLibrary(
-    googleBooksId: string,
-): Promise<BookLibraryMutationResult> {
+export async function addBookToCurrentUserLibrary(googleBooksId: string): Promise<BookLibraryMutationResult> {
     // Server Action доступен как отдельный POST-запрос, поэтому авторизацию проверяем и здесь.
     const session = await auth();
 
@@ -143,4 +160,47 @@ export async function removeBookFromCurrentUserLibrary(
     revalidateBookDetailsAndLibraryPages(normalizedBookId);
 
     return { success: true, isBookInUserLibrary: false };
+}
+
+// Меняет статус книги только в библиотеке текущего пользователя.
+export async function updateCurrentUserBookReadingStatus(
+    googleBooksId: string,
+    nextReadingStatus: string,
+): Promise<UpdateCurrentUserBookReadingStatusResult> {
+    // ID пользователя всегда берём из серверной сессии, а не доверяем клиенту.
+    const session = await auth();
+    const normalizedBookId = googleBooksId.trim();
+
+    if (!session?.user?.id) {
+        return { success: false, error: "Сначала войдите в аккаунт." };
+    }
+
+    if (!normalizedBookId) {
+        return { success: false, error: "Не удалось определить книгу." };
+    }
+
+    if (!isReadingStatus(nextReadingStatus)) {
+        return { success: false, error: "Неизвестный статус чтения." };
+    }
+
+    // Relation-фильтр находит UserBook по Google ID и одновременно ограничивает изменение владельцем.
+    const updateResult = await prisma.userBook.updateMany({
+        where: {
+            userId: session.user.id,
+            book: {
+                googleBooksId: normalizedBookId,
+            },
+        },
+        data: {
+            status: nextReadingStatus,
+        },
+    });
+
+    if (updateResult.count === 0) {
+        return { success: false, error: "Книга не найдена в вашей библиотеке." };
+    }
+
+    revalidateBookDetailsAndLibraryPages(normalizedBookId);
+
+    return { success: true, readingStatus: nextReadingStatus };
 }
