@@ -4,10 +4,7 @@ import { Suspense } from "react";
 import { GoogleBookSearchResultCard } from "@/components/books/google-book-search-result-card";
 import { Button } from "@/components/ui/button";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
-import {
-    searchGoogleBooks,
-    type GoogleBookSearchResult,
-} from "@/lib/books/google-books-api";
+import { searchGoogleBooks, type GoogleBookSearchResult } from "@/lib/books/google-books-api";
 
 type HomeProps = {
     searchParams: Promise<{
@@ -124,7 +121,8 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
             ) : books.length === 0 ? (
                 <SearchMessage>Ничего не найдено. Попробуйте изменить запрос.</SearchMessage>
             ) : (
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
+                    {/* Все строки получают одинаковую высоту по самой высокой карточке. */}
                     {books.map((book) => (
                         <GoogleBookSearchResultCard
                             key={book.googleBooksId}

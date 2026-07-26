@@ -1,6 +1,7 @@
 import "server-only";
 
 import prisma from "@/lib/prisma";
+import { cacheLife } from "next/cache";
 
 // Проверяем существует ли связь UserBook,
 // чтобы после перезагрузки показать правильное состояние кнопки.
@@ -23,6 +24,10 @@ export async function isGoogleBookInUserLibrary(userId: string, googleBooksId: s
 
 // Получаем только библиотеку нужного пользователя и нужные карточкам поля книги.
 export async function getLibraryBooksForUser(userId: string) {
+    "use cache";
+
+    cacheLife("minutes");
+
     return prisma.userBook.findMany({
         where: {
             userId,

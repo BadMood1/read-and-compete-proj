@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    cacheComponents: true,
     images: {
         // Разрешаем Next.js загружать только обложки с доменов Google Books.
         remotePatterns: [
