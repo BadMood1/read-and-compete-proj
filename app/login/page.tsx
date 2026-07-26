@@ -2,7 +2,6 @@ import { BookOpen } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { auth } from "@/auth";
 import { SignInButton } from "@/components/auth-buttons";
 import {
   Card,
@@ -12,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getCurrentSession } from "@/lib/auth/get-current-session";
 
 // Сразу показывает skeleton, пока сервер проверяет текущую сессию.
 export default function LoginPage() {
@@ -22,9 +22,9 @@ export default function LoginPage() {
   );
 }
 
-// Динамическая часть страницы: auth() выполняется только во время запроса.
+// Динамическая часть страницы: получаем сессию только во время запроса.
 async function LoginPageContent() {
-  const session = await auth();
+  const session = await getCurrentSession();
 
   // Уже авторизованному пользователю страница входа не нужна.
   if (session?.user) {

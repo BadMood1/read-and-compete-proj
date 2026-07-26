@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { AddBookToLibraryBookmarkButton } from "@/components/books/add-book-to-library-bookmark-button";
+import { BookLibraryBookmarkButton } from "@/components/books/book-library-bookmark-button";
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
 import type { GoogleBookSearchResult } from "@/lib/books/google-books-api";
 
@@ -9,10 +9,15 @@ type GoogleBookSearchResultCardProps = {
     book: GoogleBookSearchResult;
     // Адрес поиска, на который нужно вернуться со страницы книги.
     bookDetailsReturnPath: string;
+    isBookInitiallyInLibrary: boolean;
 };
 
 // Показывает один результат Google Books и открывает его полную страницу.
-export function GoogleBookSearchResultCard({ book, bookDetailsReturnPath }: GoogleBookSearchResultCardProps) {
+export function GoogleBookSearchResultCard({
+    book,
+    bookDetailsReturnPath,
+    isBookInitiallyInLibrary,
+}: GoogleBookSearchResultCardProps) {
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
@@ -80,8 +85,11 @@ export function GoogleBookSearchResultCard({ book, bookDetailsReturnPath }: Goog
                 </div>
             </Link>
 
-            {/* Пока показываем только начальное оранжевое состояние без логики добавления. */}
-            <AddBookToLibraryBookmarkButton state="not-added" />
+            {/* Bookmark меняет библиотеку прямо из поиска, не открывая страницу книги. */}
+            <BookLibraryBookmarkButton
+                googleBooksId={book.googleBooksId}
+                isBookInitiallyInLibrary={isBookInitiallyInLibrary}
+            />
         </article>
     );
 }

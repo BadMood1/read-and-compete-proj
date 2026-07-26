@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
 import { Navbar } from "@/components/navbar";
+import { getCurrentSession } from "@/lib/auth/get-current-session";
 
 // Сразу показывает fallback, пока проверяется сессия пользователя.
 export default function AppLayout({
@@ -17,13 +17,13 @@ export default function AppLayout({
     );
 }
 
-// Динамическая часть layout: auth() выполняется только во время запроса.
+// Динамическая часть layout: получаем сессию только во время запроса.
 async function AuthenticatedAppLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const session = await auth();
+    const session = await getCurrentSession();
 
     // Неавторизованный пользователь не должен увидеть защищённые страницы.
     if (!session?.user) {

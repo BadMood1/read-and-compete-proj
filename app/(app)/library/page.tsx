@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
 import { UserLibraryBookCard } from "@/components/books/user-library-book-card";
 import { Button } from "@/components/ui/button";
+import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getLibraryBooksForUser } from "@/lib/books/user-library-queries";
 import { LibraryBig } from "lucide-react";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 // Серверная страница получает личную библиотеку пользователя прямо из БД.
 export default async function LibraryPage() {
-    const session = await auth();
+    const session = await getCurrentSession();
 
     if (!session?.user?.id) {
         redirect("/login");

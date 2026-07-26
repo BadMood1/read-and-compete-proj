@@ -51,3 +51,31 @@ export async function getLibraryBooksForUser(userId: string) {
         },
     });
 }
+
+// Находим, какие книги из результатов поиска уже есть в библиотеке пользователя.
+export async function getGoogleBookIdsAlreadyInUserLibrary(userId: string, googleBooksIds: string[]) {
+    if (googleBooksIds.length === 0) {
+        return [];
+    }
+
+    const userLibraryEntries = await prisma.userBook.findMany({
+        where: {
+            userId, // userId: userId
+            book: {
+                googleBooksId: {
+                    in: googleBooksIds,
+                },
+            },
+        },
+        select: {
+            book: {
+                select: {
+                    googleBooksId: true,
+                },
+            },
+        },
+    });
+
+    // в норм вид приводим при возврате
+    return userLibraryEntries.map((userLibraryEntry) => userLibraryEntry.book.googleBooksId);
+}

@@ -4,7 +4,7 @@ import {
     addBookToCurrentUserLibrary,
     removeBookFromCurrentUserLibrary,
     type BookLibraryMutationResult,
-} from "@/app/(app)/books/actions";
+} from "@/lib/books/user-library-actions";
 import {
     AlertDialog,
     AlertDialogAction,

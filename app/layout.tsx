@@ -4,31 +4,28 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Read & Compete",
-  description: "Трекер чтения с соревнованиями и друзьями",
+    title: "read&compete",
+    description: "Трекер чтения с соревнованиями и друзьями",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html
-      lang="ru"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full">{children}</body>
-    </html>
-  );
+    return (
+        <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+            <body className="min-h-full">{children}</body>
+        </html>
+    );
 }

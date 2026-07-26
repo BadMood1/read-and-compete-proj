@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
-import { auth } from "@/auth";
+import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getValidatedBookDetailsReturnPath } from "@/lib/books/book-details-navigation";
 import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
 
@@ -38,7 +38,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     }
 
     // ID текущего пользователя нужен, чтобы проверить именно его библиотеку.
-    const session = await auth();
+    const session = await getCurrentSession();
 
     // Проверяем существует ли связь UserBook,
     // чтобы после перезагрузки показать правильное состояние кнопки.

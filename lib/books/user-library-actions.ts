@@ -5,7 +5,7 @@ import { getGoogleBookById } from "@/lib/books/google-books-api";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// Возможные ответы кнопке после добавления или удаления книги.
+// Возможные ответы интерфейсу после добавления или удаления книги.
 export type BookLibraryMutationResult =
     | {
           success: true;

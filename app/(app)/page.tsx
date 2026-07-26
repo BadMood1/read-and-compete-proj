@@ -1,10 +1,13 @@
 import { ArrowRight, Search } from "lucide-react";
+import Form from "next/form";
 import { Suspense } from "react";
 
 import { GoogleBookSearchResultCard } from "@/components/books/google-book-search-result-card";
 import { Button } from "@/components/ui/button";
+import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
 import { searchGoogleBooks, type GoogleBookSearchResult } from "@/lib/books/google-books-api";
+import { getGoogleBookIdsAlreadyInUserLibrary } from "@/lib/books/user-library-queries";
 
 type HomeProps = {
     searchParams: Promise<{
@@ -36,7 +39,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     </div>
                 )}
 
-                <form action="/" method="get" role="search" className="mt-8 flex  flex-col gap-3 sm:flex-row">
+                <Form action="/" role="search" className="mt-8 flex flex-col gap-3 sm:flex-row">
                     <label htmlFor="book-query" className="sr-only">
                         Название книги или автор
                     </label>
@@ -62,7 +65,7 @@ export default async function Home({ searchParams }: HomeProps) {
                         Найти
                         <ArrowRight aria-hidden="true" />
                     </Button>
-                </form>
+                </Form>
 
                 {!query ? (
                     <div className="mt-12 flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/45 px-6 text-center">
@@ -100,6 +103,20 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
         searchFailed = true;
     }
 
+    const booksGoogleIds = books.map((book) => book.googleBooksId);
+
+    // Начальное состояние bookmark'ов:
+
+    const session = await getCurrentSession();
+    const userId = session?.user?.id;
+    let alreadyInLibraryBooks: string[] = [];
+
+    if (userId) {
+        alreadyInLibraryBooks = await getGoogleBookIdsAlreadyInUserLibrary(userId, booksGoogleIds);
+    }
+
+    const alreadyInLibraryBooksSet = new Set(alreadyInLibraryBooks);
+
     return (
         <div className="mt-10">
             <div className="mb-7 flex items-end justify-between gap-4">
@@ -123,13 +140,16 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
             ) : (
                 <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
                     {/* Все строки получают одинаковую высоту по самой высокой карточке. */}
-                    {books.map((book) => (
-                        <GoogleBookSearchResultCard
-                            key={book.googleBooksId}
-                            book={book}
-                            bookDetailsReturnPath={createSearchResultsReturnPath(query)}
-                        />
-                    ))}
+                    {books.map((book) => {
+                        return (
+                            <GoogleBookSearchResultCard
+                                key={book.googleBooksId}
+                                isBookInitiallyInLibrary={alreadyInLibraryBooksSet.has(book.googleBooksId)}
+                                book={book}
+                                bookDetailsReturnPath={createSearchResultsReturnPath(query)}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>
