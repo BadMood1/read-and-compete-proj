@@ -22,6 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
 import { READING_STATUS_LABELS } from "@/lib/books/reading-status-labels";
 import { updateCurrentUserBookReadingStatus } from "@/lib/books/user-library-actions";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,9 @@ export function LibraryBookReadingStatusDropdown({
 }: LibraryBookReadingStatusDropdownProps) {
     const [currentReadingStatus, setCurrentReadingStatus] = useState(readingStatus);
     const [isSavingReadingStatus, setIsSavingReadingStatus] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // Ошибка показывается рядом с кнопкой и сама исчезает через несколько секунд.
+    const [errorMessage, setErrorMessage, isErrorMessageVisible] = useAutoDismissErrorMessage();
 
     const currentStatusPresentation = READING_STATUS_PRESENTATION[currentReadingStatus];
     const CurrentStatusIcon = currentStatusPresentation.icon;
@@ -172,7 +175,11 @@ export function LibraryBookReadingStatusDropdown({
             {errorMessage ? (
                 <p
                     role="alert"
-                    className="absolute bottom-[calc(100%+0.35rem)] left-0 z-50 w-56 rounded-lg border border-destructive/25 bg-card px-2.5 py-1.5 text-xs text-destructive shadow-md"
+                    className={cn(
+                        "absolute bottom-[calc(100%+0.35rem)] left-0 z-30 w-56 rounded-lg border border-destructive/25 bg-card px-2.5 py-1.5 text-xs text-destructive shadow-md",
+                        "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+                        isErrorMessageVisible ? "opacity-100" : "opacity-0",
+                    )}
                 >
                     {errorMessage}
                 </p>

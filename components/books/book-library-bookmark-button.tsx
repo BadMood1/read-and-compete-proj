@@ -3,6 +3,7 @@
 import { Check, LoaderCircle, Plus } from "lucide-react";
 import { useState } from "react";
 
+import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
 import {
     addBookToCurrentUserLibrary,
     removeBookFromCurrentUserLibrary,
@@ -37,8 +38,8 @@ export function BookLibraryBookmarkButton({
     const initialState = isBookInitiallyInLibrary ? "added" : "not-added";
     const [bookmarkButtonState, setBookmarkButtonState] = useState<BookLibraryBookmarkState>(initialState);
 
-    // Ошибка остаётся рядом с bookmark, поэтому не меняет высоту всей карточки.
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    // Ошибка не меняет высоту карточки и сама исчезает через несколько секунд.
+    const [errorMessage, setErrorMessage, isErrorMessageVisible] = useAutoDismissErrorMessage();
 
     async function handleBookLibraryBookmarkClick() {
         // Не отправляем повторную мутацию, пока добавление или удаление ещё выполняется.
@@ -143,7 +144,11 @@ export function BookLibraryBookmarkButton({
             {errorMessage ? (
                 <p
                     role="alert"
-                    className="pointer-events-none absolute right-3 top-26 z-20 max-w-56 rounded-lg border border-destructive/25 bg-card px-2.5 py-1.5 text-xs text-destructive shadow-md"
+                    className={cn(
+                        "pointer-events-none absolute right-3 top-26 z-30 max-w-56 rounded-lg border border-destructive/25 bg-card px-2.5 py-1.5 text-xs text-destructive shadow-md",
+                        "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+                        isErrorMessageVisible ? "opacity-100" : "opacity-0",
+                    )}
                 >
                     {errorMessage}
                 </p>
