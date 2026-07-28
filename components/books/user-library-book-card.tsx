@@ -15,10 +15,11 @@ type UserLibraryBookCardProps = {
         pageCount: number | null;
         publishedDate: string | null;
     };
+    returnPath: string;
 };
 
 // Показывает одну сохранённую книгу и ведёт на её полную страницу.
-export function UserLibraryBookCard({ status, book }: UserLibraryBookCardProps) {
+export function UserLibraryBookCard({ status, book, returnPath }: UserLibraryBookCardProps) {
     // Собираем только существующие характеристики, чтобы не выводить пустые разделители.
     const details = [
         book.publishedDate?.slice(0, 4),
@@ -29,7 +30,7 @@ export function UserLibraryBookCard({ status, book }: UserLibraryBookCardProps) 
     // добавляем в searchParams, на странице книги возьмем обратно
     const bookDetailsPath = createBookDetailsPath({
         googleBooksId: book.googleBooksId,
-        returnPath: "/library",
+        returnPath,
     });
 
     return (

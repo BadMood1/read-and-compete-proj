@@ -23,7 +23,10 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
-import { READING_STATUS_LABELS } from "@/lib/books/reading-status-labels";
+import {
+    READING_STATUS_LABELS,
+    READING_STATUS_ORDER,
+} from "@/lib/books/reading-status-labels";
 import { updateCurrentUserBookReadingStatus } from "@/lib/books/user-library-actions";
 import { cn } from "@/lib/utils";
 
@@ -37,8 +40,6 @@ type ReadingStatusPresentation = {
     triggerClassName: string;
     menuIconClassName: string;
 };
-
-const READING_STATUS_ORDER: ReadingStatus[] = ["WANT_TO_READ", "READING", "FINISHED", "PAUSED", "DROPPED"];
 
 // Все цвета и иконки статусов находятся рядом с компонентом, а не разбросаны по карточкам.
 const READING_STATUS_PRESENTATION: Record<ReadingStatus, ReadingStatusPresentation> = {

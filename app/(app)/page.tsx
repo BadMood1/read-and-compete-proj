@@ -21,7 +21,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
     return (
         <main className="flex-1">
-            <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+            <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-8">
                 {!query ? (
                     <div className="">
                         <p className="text-sm font-semibold text-primary">Поиск книг</p>

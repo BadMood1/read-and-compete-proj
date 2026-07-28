@@ -2,7 +2,7 @@ import { Trophy } from "lucide-react";
 
 export default function LeaderboardPage() {
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
       <p className="text-sm font-semibold text-primary">Leaderboard</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">
         Рейтинг читателей
