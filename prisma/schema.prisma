@@ -61,6 +61,7 @@ model User {
   accounts Account[]
   sessions Session[]
   library  UserBook[]
+  reviews  Review[]
 
   @@map("users")
 }
@@ -85,6 +86,7 @@ model Book {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   readers UserBook[] // книга у конкретных пользователей связь
+  reviews Review[]
 
   @@map("books")
 }
@@ -95,7 +97,6 @@ model UserBook {
   userId     String        @map("user_id")
   bookId     String        @map("book_id")
   status     ReadingStatus @default(WANT_TO_READ)
-  rating     Int?
   isFavorite Boolean       @default(false) @map("is_favorite")
   startedAt  DateTime?     @map("started_at")
   finishedAt DateTime?     @map("finished_at")
@@ -110,6 +111,29 @@ model UserBook {
   @@unique([userId, bookId]) // userId_bookId составной уникальный ключ создался
   @@index([userId, status]) // ускоряет поиск библиотеки пользователя с фильтром по статусу
   @@map("user_books") // модель UserBook хранится в PostgreSQL-таблице user_books
+}
+
+// Оценка и необязательный текст рецензии конкретного пользователя на книгу.
+model Review {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  bookId    String   @map("book_id")
+  rating    Int
+  text      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // При удалении аккаунта удаляем и написанные им рецензии.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Не разрешаем удалить общую книгу, пока на неё существуют рецензии.
+  book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  // Пользователь может оставить только одну рецензию на конкретную книгу.
+  @@unique([userId, bookId])
+  // Ускоряет получение рецензий книги с сортировкой от новых к старым.
+  @@index([bookId, createdAt])
+  @@map("reviews")
 }
 
 // Одноразовый токен для будущего входа или подтверждения по email.
