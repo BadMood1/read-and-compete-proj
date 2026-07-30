@@ -23,47 +23,46 @@ type BookPageProps = {
 };
 
 export default async function BookPage({ params, searchParams }: BookPageProps) {
-    const { googleBooksId } = await params;
+    // Сессия не зависит от параметров и Google Books, поэтому запускаем её заранее.
+    const currentSessionPromise = getCurrentSession();
+
+    // Параметры адреса независимы друг от друга, поэтому получаем их одновременно.
+    const [{ googleBooksId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
 
     // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
-    const bookDetailsReturnPath = getValidatedBookDetailsReturnPath((await searchParams).returnPath);
+    const bookDetailsReturnPath = getValidatedBookDetailsReturnPath(resolvedSearchParams.returnPath);
     const backLinkLabel = bookDetailsReturnPath.startsWith("/library")
         ? "Назад к библиотеке"
         : "Назад к поиску";
 
     // Загружаем конкретную книгу по ID из адресной строки.
-    const book = await getGoogleBookById(googleBooksId);
+    const [book, session] = await Promise.all([
+        getGoogleBookById(googleBooksId),
+        currentSessionPromise,
+    ]);
 
     // null означает, что Google не нашёл книгу с таким ID.
     if (!book) {
         notFound();
     }
 
-    // ID текущего пользователя нужен, чтобы проверить именно его библиотеку.
-    const session = await getCurrentSession();
+    const currentUserId = session?.user?.id;
 
-    // Проверяем существует ли связь UserBook,
-    // чтобы после перезагрузки показать правильное состояние кнопки.
-    const isBookAlreadyInUserLibrary = session?.user?.id
-        ? await isGoogleBookInUserLibrary(session.user.id, book.googleBooksId)
-        : false;
-
-    // Загружаем только собственную рецензию, чтобы заполнить форму после перезагрузки.
-    const currentUserReview = session?.user?.id
-        ? await getCurrentUserReviewForGoogleBook(session.user.id, book.googleBooksId)
-        : null;
+    // Состояние библиотеки, собственная рецензия и рецензии других читателей
+    // используют уже известные ID, но друг от друга не зависят.
+    const [isBookAlreadyInUserLibrary, currentUserReview, publicBookReviews] = currentUserId
+        ? await Promise.all([
+              isGoogleBookInUserLibrary(currentUserId, book.googleBooksId),
+              getCurrentUserReviewForGoogleBook(currentUserId, book.googleBooksId),
+              getPublicReviewsForGoogleBook(book.googleBooksId, currentUserId),
+          ])
+        : [false, null, []];
 
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
         book.language?.toUpperCase(),
     ].filter(Boolean);
-
-    // РЕЦЕНЗИИ
-
-    const publicBookReviews = session?.user?.id
-        ? await getPublicReviewsForGoogleBook(book.googleBooksId, session.user.id)
-        : [];
 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">

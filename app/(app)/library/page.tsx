@@ -1,5 +1,7 @@
-import { LibraryBookSearchAndStatusFilters } from "@/components/books/library-book-search-and-status-filters";
-import { UserLibraryBookCard } from "@/components/books/user-library-book-card";
+import {
+    LibraryBookSearchAndStatusFilters,
+    UserLibraryBookCard,
+} from "@/components/books/user-library";
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { READING_STATUS_ORDER } from "@/lib/books/reading-status-labels";
@@ -24,10 +26,11 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
         redirect("/login");
     }
 
-    // Получаем только библиотеку текущего пользователя и нужные карточкам поля книги.
-    const libraryBooks = await getLibraryBooksForUser(session.user.id);
-
-    const resolvedSearchParams = await searchParams;
+    // Библиотека и параметры URL независимы, поэтому ждём их одновременно.
+    const [libraryBooks, resolvedSearchParams] = await Promise.all([
+        getLibraryBooksForUser(session.user.id),
+        searchParams,
+    ]);
 
     // searchQuery
 

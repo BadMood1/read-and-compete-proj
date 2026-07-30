@@ -2,7 +2,7 @@ import { ArrowRight, Search } from "lucide-react";
 import Form from "next/form";
 import { Suspense } from "react";
 
-import { GoogleBookSearchResultCard } from "@/components/books/google-book-search-result-card";
+import { GoogleBookSearchResultCard } from "@/components/books/google-book-search";
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
@@ -93,6 +93,9 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
     let books: GoogleBookSearchResult[] = [];
     let searchFailed = false;
 
+    // Сессия и Google Books не зависят друг от друга, поэтому запускаем их ожидание параллельно.
+    const sessionPromise = getCurrentSession();
+
     // Только этот компонент ждёт внешний API; форма и Navbar уже отображены.
     try {
         if (query.length >= 2) {
@@ -107,7 +110,7 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
 
     // Начальное состояние bookmark'ов:
 
-    const session = await getCurrentSession();
+    const session = await sessionPromise;
     const userId = session?.user?.id;
     let alreadyInLibraryBooks: string[] = [];
 

@@ -2,7 +2,7 @@ import type { ReadingStatus } from "@/app/generated/prisma/enums";
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { LibraryBookReadingStatusDropdown } from "@/components/books/library-book-reading-status-dropdown";
+import { LibraryBookReadingStatusDropdown } from "./library-book-reading-status-dropdown";
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
 
 type UserLibraryBookCardProps = {

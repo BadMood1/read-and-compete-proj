@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookLibraryBookmarkButton } from "@/components/books/book-library-bookmark-button";
+import { BookLibraryBookmarkButton } from "./book-library-bookmark-button";
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
 import type { GoogleBookSearchResult } from "@/lib/books/google-books-api";
 
