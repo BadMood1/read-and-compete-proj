@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
     cacheComponents: true,
     images: {
-        // Разрешаем Next.js загружать только обложки с доменов Google Books.
+        // Разрешаем оптимизатору только известные источники обложек и OAuth-аватаров.
         remotePatterns: [
             {
                 protocol: "https",
@@ -19,6 +19,16 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "books.googleusercontent.com",
                 pathname: "/books/content",
+            },
+            {
+                protocol: "https",
+                hostname: "lh3.googleusercontent.com",
+                pathname: "/a/**",
+            },
+            {
+                protocol: "https",
+                hostname: "avatars.githubusercontent.com",
+                pathname: "/u/**",
             },
         ],
     },

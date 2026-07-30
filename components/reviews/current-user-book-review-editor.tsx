@@ -161,7 +161,7 @@ export function CurrentUserBookReviewEditor({
                 // В сохранённом состоянии оставляем текст прямо в секции, без лишней вложенной карточки.
                 <div className="mt-6 border-t border-border pt-5">
                     {currentReview.text ? (
-                        <p className="break-words whitespace-pre-line text-sm leading-7">
+                        <p className="wrap-break-word whitespace-pre-line text-sm leading-7">
                             {currentReview.text}
                         </p>
                     ) : (
@@ -180,10 +180,7 @@ export function CurrentUserBookReviewEditor({
                             Изменить
                         </Button>
 
-                        <AlertDialog
-                            open={isDeleteDialogOpen}
-                            onOpenChange={handleDeleteDialogOpenChange}
-                        >
+                        <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
                             <AlertDialogTrigger asChild>
                                 <Button
                                     type="button"
@@ -200,8 +197,8 @@ export function CurrentUserBookReviewEditor({
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Удалить рецензию?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Оценка и текст рецензии будут удалены. Сама книга останется в
-                                        вашей библиотеке.
+                                        Оценка и текст рецензии будут удалены. Сама книга останется в вашей
+                                        библиотеке.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
 
@@ -213,19 +210,14 @@ export function CurrentUserBookReviewEditor({
 
                                 {/* Короткие действия помещаются в одну строку даже на мобильном. */}
                                 <AlertDialogFooter className="grid grid-cols-2 sm:flex">
-                                    <AlertDialogCancel disabled={isDeletingReview}>
-                                        Отмена
-                                    </AlertDialogCancel>
+                                    <AlertDialogCancel disabled={isDeletingReview}>Отмена</AlertDialogCancel>
                                     <AlertDialogAction
                                         disabled={isDeletingReview}
                                         aria-busy={isDeletingReview}
                                         onClick={handleReviewDelete}
                                     >
                                         {isDeletingReview ? (
-                                            <LoaderCircle
-                                                className="animate-spin"
-                                                aria-hidden="true"
-                                            />
+                                            <LoaderCircle className="animate-spin" aria-hidden="true" />
                                         ) : (
                                             <Trash2 aria-hidden="true" />
                                         )}

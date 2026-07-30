@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { signOut } from "@/auth";
 import { NavLinks } from "@/components/nav-links";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/users/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,15 +18,6 @@ type NavbarUser = {
   email?: string | null;
   image?: string | null;
 };
-
-function getInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 export function Navbar({ user }: { user: NavbarUser }) {
   const displayName = user.name ?? "Читатель";
@@ -59,14 +50,11 @@ export function Navbar({ user }: { user: NavbarUser }) {
                 className="rounded-full outline-none ring-offset-2 ring-offset-background transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Открыть меню пользователя"
               >
-                <Avatar className="size-9">
-                  {user.image ? (
-                    <AvatarImage src={user.image} alt={displayName} />
-                  ) : null}
-                  <AvatarFallback>
-                    {getInitials(displayName) || "RC"}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  displayName={displayName}
+                  imageUrl={user.image}
+                  className="size-9"
+                />
               </button>
             </DropdownMenuTrigger>
 

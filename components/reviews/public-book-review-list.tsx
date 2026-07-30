@@ -1,6 +1,6 @@
 import { MessageSquareText } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/users/user-avatar";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
 
 type PublicBookReviewListProps = {
@@ -16,17 +16,6 @@ const reviewDateFormatter = new Intl.DateTimeFormat("ru-RU", {
 
 function getReviewAuthorDisplayName(authorName: string | null) {
     return authorName?.trim() || "Читатель";
-}
-
-function getReviewAuthorInitials(authorName: string) {
-    return (
-        authorName
-            .split(/\s+/) // разбивка на слова(по пробелам)
-            .map((namePart) => namePart[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase() || "RC"
-    );
 }
 
 // Серверный компонент: ему не нужны состояние, обработчики событий и клиентский JavaScript.
@@ -58,14 +47,11 @@ export function PublicBookReviewList({ reviews }: PublicBookReviewListProps) {
                         return (
                             <article key={review.id} className="py-6 first:pt-5 last:pb-0">
                                 <div className="flex items-start gap-3">
-                                    <Avatar size="lg">
-                                        {review.author.image ? (
-                                            <AvatarImage src={review.author.image} alt={authorDisplayName} />
-                                        ) : null}
-                                        <AvatarFallback>
-                                            {getReviewAuthorInitials(authorDisplayName)}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    <UserAvatar
+                                        displayName={authorDisplayName}
+                                        imageUrl={review.author.image}
+                                        size="lg"
+                                    />
 
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
