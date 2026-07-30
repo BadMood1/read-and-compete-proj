@@ -112,8 +112,7 @@ export function SavedCurrentUserReview({
                         <AlertDialogHeader>
                             <AlertDialogTitle>Удалить рецензию?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Оценка и текст рецензии будут удалены. Сама книга останется в вашей
-                                библиотеке.
+                                Будут удалены только оценка и текст рецензии.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
 

@@ -13,12 +13,14 @@ import {
 type CurrentUserBookReviewEditorProps = {
     googleBooksId: string;
     initialReview: CurrentUserReviewData | null;
+    isBookInCurrentUserLibrary: boolean;
 };
 
 // Сервер передаёт существующую рецензию через initialReview при первом открытии страницы.
 export function CurrentUserBookReviewEditor({
     googleBooksId,
     initialReview,
+    isBookInCurrentUserLibrary,
 }: CurrentUserBookReviewEditorProps) {
     const [isSavingReview, setIsSavingReview] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -28,6 +30,9 @@ export function CurrentUserBookReviewEditor({
     const [isEditingReview, setIsEditingReview] = useState<boolean>(initialReview === null);
     // Компактный вид показываем, когда рецензия уже сохранена и сейчас не редактируется.
     const isShowingSavedReview = currentReview !== null && !isEditingReview;
+    // Новую рецензию можно создать только после добавления книги в личную библиотеку.
+    // Уже существующую оставляем доступной, даже если пользователь позже удалил UserBook.
+    const isReviewCreationLocked = currentReview === null && !isBookInCurrentUserLibrary;
 
     async function handleReviewSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -96,7 +101,17 @@ export function CurrentUserBookReviewEditor({
                         ) : null}
                     </div>
 
-                    {isShowingSavedReview ? null : (
+                    {isShowingSavedReview ? null : isReviewCreationLocked ? (
+                        <>
+                            <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+                                Рецензия пока недоступна
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                Добавьте книгу в библиотеку, чтобы поставить оценку или написать
+                                рецензию.
+                            </p>
+                        </>
+                    ) : (
                         <>
                             <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
                                 {currentReview ? "Измените свою рецензию" : "Поделитесь впечатлением"}
@@ -109,7 +124,7 @@ export function CurrentUserBookReviewEditor({
                 </div>
             </div>
 
-            {isShowingSavedReview ? (
+            {isReviewCreationLocked ? null : isShowingSavedReview ? (
                 <SavedCurrentUserReview
                     googleBooksId={googleBooksId}
                     review={currentReview}

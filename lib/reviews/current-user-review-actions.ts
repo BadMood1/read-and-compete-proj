@@ -90,7 +90,8 @@ export async function saveCurrentUserReview(
     });
 
     if (!book) {
-        return { success: false, error: "Книга не найдена в базе." };
+        // Книга из Google Books ещё не сохранена локально, то есть пользователь её не добавлял.
+        return { success: false, error: "Сначала добавьте книгу в библиотеку." };
     }
 
     // есть ли у пользователя наша книга в библиотеке

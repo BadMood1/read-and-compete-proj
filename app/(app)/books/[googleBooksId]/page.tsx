@@ -163,6 +163,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
             <CurrentUserBookReviewEditor
                 googleBooksId={book.googleBooksId}
                 initialReview={currentUserReview}
+                isBookInCurrentUserLibrary={isBookAlreadyInUserLibrary}
             />
             {/* Остальные рецензии пользователей */}
             <PublicBookReviewList reviews={publicBookReviews} />
