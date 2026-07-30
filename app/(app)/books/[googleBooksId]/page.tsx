@@ -7,6 +7,10 @@ import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-b
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getValidatedBookDetailsReturnPath } from "@/lib/books/book-details-navigation";
 import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
+import { CurrentUserBookReviewEditor } from "@/components/reviews/current-user-book-review-editor";
+import { getCurrentUserReviewForGoogleBook } from "@/lib/reviews/current-user-review-queries";
+import { PublicBookReviewList } from "@/components/reviews/public-book-review-list";
+import { getPublicReviewsForGoogleBook } from "@/lib/reviews/public-book-review-queries";
 
 type BookPageProps = {
     // В Next.js 16 динамические параметры страницы приходят как Promise.
@@ -22,9 +26,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     const { googleBooksId } = await params;
 
     // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
-    const bookDetailsReturnPath = getValidatedBookDetailsReturnPath(
-        (await searchParams).returnPath,
-    );
+    const bookDetailsReturnPath = getValidatedBookDetailsReturnPath((await searchParams).returnPath);
     const backLinkLabel = bookDetailsReturnPath.startsWith("/library")
         ? "Назад к библиотеке"
         : "Назад к поиску";
@@ -46,11 +48,22 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
         ? await isGoogleBookInUserLibrary(session.user.id, book.googleBooksId)
         : false;
 
+    // Загружаем только собственную рецензию, чтобы заполнить форму после перезагрузки.
+    const currentUserReview = session?.user?.id
+        ? await getCurrentUserReviewForGoogleBook(session.user.id, book.googleBooksId)
+        : null;
+
     const details = [
         book.publishedDate?.slice(0, 4),
         book.pageCount ? `${book.pageCount} стр.` : null,
         book.language?.toUpperCase(),
     ].filter(Boolean);
+
+    // РЕЦЕНЗИИ
+
+    const publicBookReviews = session?.user?.id
+        ? await getPublicReviewsForGoogleBook(book.googleBooksId, session.user.id)
+        : [];
 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
@@ -133,6 +146,14 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
                     isInitiallyInUserLibrary={isBookAlreadyInUserLibrary}
                 />
             </article>
+
+            {/* Редактор вынесен отдельно, потому что позже получит своё клиентское состояние. */}
+            <CurrentUserBookReviewEditor
+                googleBooksId={book.googleBooksId}
+                initialReview={currentUserReview}
+            />
+            {/* Остальные рецензии пользователей */}
+            <PublicBookReviewList reviews={publicBookReviews} />
         </main>
     );
 }

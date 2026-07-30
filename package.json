@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:test-reviews": "node --env-file=.env scripts/seed-test-book-reviews.mjs",
+    "seed:test-reviews:cleanup": "node --env-file=.env scripts/seed-test-book-reviews.mjs --cleanup",
+    "session:test-user": "node --env-file=.env scripts/create-test-user-session.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
