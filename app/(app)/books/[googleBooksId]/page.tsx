@@ -1,9 +1,10 @@
 import { getGoogleBookById } from "@/lib/books/google-books-api";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
+import { BookRatingSummary } from "@/components/reviews/book-rating-summary";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getValidatedBookDetailsReturnPath } from "@/lib/books/book-details-navigation";
 import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
@@ -11,6 +12,7 @@ import { CurrentUserBookReviewEditor } from "@/components/reviews/current-user-b
 import { getCurrentUserReviewForGoogleBook } from "@/lib/reviews/current-user-review-queries";
 import { PublicBookReviewList } from "@/components/reviews/public-book-review-list";
 import { getPublicReviewsForGoogleBook } from "@/lib/reviews/public-book-review-queries";
+import { getBookRatingSummary } from "@/lib/reviews/book-rating-summary-query";
 
 type BookPageProps = {
     // В Next.js 16 динамические параметры страницы приходят как Promise.
@@ -36,10 +38,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
         : "Назад к поиску";
 
     // Загружаем конкретную книгу по ID из адресной строки.
-    const [book, session] = await Promise.all([
-        getGoogleBookById(googleBooksId),
-        currentSessionPromise,
-    ]);
+    const [book, session] = await Promise.all([getGoogleBookById(googleBooksId), currentSessionPromise]);
 
     // null означает, что Google не нашёл книгу с таким ID.
     if (!book) {
@@ -48,15 +47,23 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     const currentUserId = session?.user?.id;
 
-    // Состояние библиотеки, собственная рецензия и рецензии других читателей
-    // используют уже известные ID, но друг от друга не зависят.
-    const [isBookAlreadyInUserLibrary, currentUserReview, publicBookReviews] = currentUserId
-        ? await Promise.all([
-              isGoogleBookInUserLibrary(currentUserId, book.googleBooksId),
-              getCurrentUserReviewForGoogleBook(currentUserId, book.googleBooksId),
-              getPublicReviewsForGoogleBook(book.googleBooksId, currentUserId),
-          ])
-        : [false, null, []];
+    // Защита layout остаётся основной, а эта проверка не даёт странице работать без userId.
+    if (!currentUserId) {
+        redirect("/login");
+    }
+
+    // Все запросы используют уже известные ID, но друг от друга не зависят.
+    const [
+        isBookAlreadyInUserLibrary,
+        currentUserReview,
+        publicBookReviews,
+        bookRatingSummary,
+    ] = await Promise.all([
+        isGoogleBookInUserLibrary(currentUserId, book.googleBooksId),
+        getCurrentUserReviewForGoogleBook(currentUserId, book.googleBooksId),
+        getPublicReviewsForGoogleBook(book.googleBooksId, currentUserId),
+        getBookRatingSummary(book.googleBooksId),
+    ]);
 
     const details = [
         book.publishedDate?.slice(0, 4),
@@ -128,6 +135,12 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
                     {book.publisher ? (
                         <p className="mt-2 text-sm text-muted-foreground">Издательство: {book.publisher}</p>
                     ) : null}
+
+                    {/* Общий рейтинг учитывает все оценки пользователей, даже оставленные без текста. */}
+                    <BookRatingSummary
+                        averageRating={bookRatingSummary.averageRating}
+                        ratingsCount={bookRatingSummary.ratingsCount}
+                    />
                 </div>
 
                 {/* На md описание идёт под обеими колонками, а на lg — только под информацией справа. */}
