@@ -1,4 +1,4 @@
-import { BookOpen, LogOut } from "lucide-react";
+import { BookOpen, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/auth";
@@ -12,8 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { createProfilePath } from "@/lib/profile/profile-navigation";
 
 type NavbarUser = {
+  id: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
@@ -21,6 +23,8 @@ type NavbarUser = {
 
 export function Navbar({ user }: { user: NavbarUser }) {
   const displayName = user.name ?? "Читатель";
+  // В интерфейсе сразу используем публичный URL, не заходя через redirect /profile.
+  const profilePath = createProfilePath(user.id);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 shadow-[0_5px_24px_rgba(48,36,28,0.07)] backdrop-blur">
@@ -67,6 +71,15 @@ export function Navbar({ user }: { user: NavbarUser }) {
                   </p>
                 ) : null}
               </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem asChild>
+                <Link href={profilePath}>
+                  <UserRound aria-hidden="true" />
+                  Профиль
+                </Link>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 

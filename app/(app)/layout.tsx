@@ -24,15 +24,24 @@ async function AuthenticatedAppLayout({
     children: React.ReactNode;
 }>) {
     const session = await getCurrentSession();
+    const currentUser = session?.user;
 
     // Неавторизованный пользователь не должен увидеть защищённые страницы.
-    if (!session?.user) {
+    // Navbar теперь формирует ссылку /profile/[id]. Поэтому ему обязательно нужен гарантированный id.
+    if (!currentUser?.id) {
         redirect("/login");
     }
 
     return (
         <div className="flex min-h-svh flex-col">
-            <Navbar user={session.user} />
+            <Navbar
+                user={{
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    email: currentUser.email,
+                    image: currentUser.image,
+                }}
+            />
             {children}
         </div>
     );
@@ -54,10 +63,7 @@ function AppLayoutLoading() {
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                             {Array.from({ length: 3 }).map((_, index) => (
-                                <span
-                                    key={index}
-                                    className="h-9 w-9 rounded-lg bg-muted md:w-24"
-                                />
+                                <span key={index} className="h-9 w-9 rounded-lg bg-muted md:w-24" />
                             ))}
                         </div>
                         <span className="size-9 rounded-full bg-muted" />

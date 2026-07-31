@@ -1,3 +1,5 @@
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import {
@@ -6,6 +8,7 @@ import {
     ProfileStatistics,
 } from "@/components/profile";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { getValidatedProfileReturnPath } from "@/lib/profile/profile-navigation";
 import { getUserProfileById } from "@/lib/profile/profile-user-query";
 
 type ProfilePageProps = {
@@ -13,12 +16,18 @@ type ProfilePageProps = {
     params: Promise<{
         userId: string;
     }>;
+    searchParams: Promise<{
+        returnPath?: string | string[];
+    }>;
 };
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+export default async function ProfilePage({ params, searchParams }: ProfilePageProps) {
     // Сессия не зависит от ID профиля, поэтому запускаем обе операции одновременно.
     const currentSessionPromise = getCurrentSession();
-    const { userId } = await params;
+    const [{ userId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+
+    // Некорректный или внешний returnPath просто не создаст кнопку возврата.
+    const profileReturnPath = getValidatedProfileReturnPath(resolvedSearchParams.returnPath);
 
     const [profileUser, session] = await Promise.all([
         getUserProfileById(userId),
@@ -39,6 +48,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
             <div className="space-y-6">
+                {profileReturnPath ? (
+                    <Link
+                        href={profileReturnPath}
+                        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                        Назад к книге
+                    </Link>
+                ) : null}
+
                 <ProfileHeader
                     profileDisplayName={profileUser.name}
                     profileImageUrl={profileUser.image}

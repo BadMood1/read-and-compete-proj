@@ -6,7 +6,10 @@ import Link from "next/link";
 import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
 import { BookRatingSummary } from "@/components/reviews/book-rating-summary";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
-import { getValidatedBookDetailsReturnPath } from "@/lib/books/book-details-navigation";
+import {
+    createBookDetailsPath,
+    getValidatedBookDetailsReturnPath,
+} from "@/lib/books/book-details-navigation";
 import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
 import { CurrentUserBookReviewEditor } from "@/components/reviews/current-user-book-review-editor";
 import { getCurrentUserReviewForGoogleBook } from "@/lib/reviews/current-user-review-queries";
@@ -74,6 +77,12 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
         book.pageCount ? `${book.pageCount} стр.` : null,
         book.language?.toUpperCase(),
     ].filter(Boolean);
+
+    // Профиль автора рецензии сможет вернуть пользователя именно на эту страницу книги.
+    const currentBookPagePath = createBookDetailsPath({
+        googleBooksId: book.googleBooksId,
+        returnPath: bookDetailsReturnPath,
+    });
 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
@@ -170,7 +179,10 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
                 isBookInCurrentUserLibrary={isBookAlreadyInUserLibrary}
             />
             {/* Остальные рецензии пользователей */}
-            <PublicBookReviewList reviews={publicBookReviews} />
+            <PublicBookReviewList
+                reviews={publicBookReviews}
+                bookPagePath={currentBookPagePath}
+            />
         </main>
     );
 }

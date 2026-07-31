@@ -1,10 +1,13 @@
 import { MessageSquareText } from "lucide-react";
+import Link from "next/link";
 
 import { UserAvatar } from "@/components/users/user-avatar";
+import { createProfilePathWithReturnPath } from "@/lib/profile/profile-navigation";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
 
 type PublicBookReviewListProps = {
     reviews: PublicBookReviewData[];
+    bookPagePath: string;
 };
 
 const reviewDateFormatter = new Intl.DateTimeFormat("ru-RU", {
@@ -19,7 +22,7 @@ function getReviewAuthorDisplayName(authorName: string | null) {
 }
 
 // Серверный компонент: ему не нужны состояние, обработчики событий и клиентский JavaScript.
-export function PublicBookReviewList({ reviews }: PublicBookReviewListProps) {
+export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReviewListProps) {
     return (
         <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
             <div className="flex items-start gap-3">
@@ -42,23 +45,36 @@ export function PublicBookReviewList({ reviews }: PublicBookReviewListProps) {
             ) : (
                 <div className="mt-6 divide-y divide-border border-t border-border">
                     {reviews.map((review) => {
+                        // Профиль запоминает эту книгу и сможет показать ссылку возврата.
+                        const userProfilePath = createProfilePathWithReturnPath({
+                            userId: review.author.id,
+                            returnPath: bookPagePath,
+                        });
                         const authorDisplayName = getReviewAuthorDisplayName(review.author.name);
 
                         return (
                             <article key={review.id} className="py-6 first:pt-5 last:pb-0">
                                 <div className="flex items-start gap-3">
-                                    <UserAvatar
-                                        displayName={authorDisplayName}
-                                        imageUrl={review.author.image}
-                                        size="lg"
-                                    />
-
+                                    <Link
+                                        href={userProfilePath}
+                                        aria-label={`Открыть профиль пользователя ${authorDisplayName}`}
+                                        className="shrink-0 rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                    >
+                                        <UserAvatar
+                                            displayName={authorDisplayName}
+                                            imageUrl={review.author.image}
+                                            size="lg"
+                                        />
+                                    </Link>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                                             <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold">
+                                                <Link
+                                                    href={userProfilePath}
+                                                    className="block max-w-full truncate rounded-sm text-sm font-semibold transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                                >
                                                     {authorDisplayName}
-                                                </p>
+                                                </Link>
                                                 <time
                                                     dateTime={review.createdAt.toISOString()}
                                                     className="mt-0.5 block text-xs text-muted-foreground"
@@ -74,7 +90,7 @@ export function PublicBookReviewList({ reviews }: PublicBookReviewListProps) {
 
                                         {/* Запись без текста остаётся компактной: автора и оценки уже достаточно. */}
                                         {review.text ? (
-                                            <p className="mt-4 break-words whitespace-pre-line text-sm leading-7">
+                                            <p className="mt-4 wrap-break-word whitespace-pre-line text-sm leading-7">
                                                 {review.text}
                                             </p>
                                         ) : null}
