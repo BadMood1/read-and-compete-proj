@@ -167,6 +167,8 @@ export async function updateCurrentUserBookReadingStatus(
     googleBooksId: string,
     nextReadingStatus: string,
 ): Promise<UpdateCurrentUserBookReadingStatusResult> {
+    // --- ПРОВЕРКИ ---
+
     // ID пользователя всегда берём из серверной сессии, а не доверяем клиенту.
     const session = await auth();
     const normalizedBookId = googleBooksId.trim();
@@ -183,22 +185,50 @@ export async function updateCurrentUserBookReadingStatus(
         return { success: false, error: "Неизвестный статус чтения." };
     }
 
-    // Relation-фильтр находит UserBook по Google ID и одновременно ограничивает изменение владельцем.
-    const updateResult = await prisma.userBook.updateMany({
+    // !-- ПРОВЕРКИ ---
+
+    //
+    const currentUserBook = await prisma.userBook.findFirst({
         where: {
             userId: session.user.id,
             book: {
                 googleBooksId: normalizedBookId,
             },
         },
-        data: {
-            status: nextReadingStatus,
+        select: {
+            id: true,
+            status: true,
+            finishedAt: true,
         },
     });
 
-    if (updateResult.count === 0) {
+    if (!currentUserBook) {
         return { success: false, error: "Книга не найдена в вашей библиотеке." };
     }
+
+    let nextFinishedAt: Date | null;
+
+    if (nextReadingStatus !== ReadingStatus.FINISHED) {
+        // Книга больше не считается прочитанной — очищаем дату.
+        nextFinishedAt = null;
+    } else if (currentUserBook.status === ReadingStatus.FINISHED) {
+        // защита от повторного изменения с finished на finished
+        nextFinishedAt = currentUserBook.finishedAt ?? new Date();
+    } else {
+        // Пользователь только сейчас отметил книгу прочитанной.
+        nextFinishedAt = new Date();
+    }
+
+    // Добавляем в БД
+    await prisma.userBook.update({
+        where: {
+            id: currentUserBook.id,
+        },
+        data: {
+            status: nextReadingStatus,
+            finishedAt: nextFinishedAt,
+        },
+    });
 
     revalidateBookDetailsAndLibraryPages(normalizedBookId);
 
