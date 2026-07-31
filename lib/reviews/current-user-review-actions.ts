@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
 import { revalidatePath } from "next/cache";
 
 const MIN_REVIEW_RATING = 1;
@@ -28,9 +29,10 @@ function isValidReviewRating(rating: number) {
     return Number.isInteger(rating) && rating >= MIN_REVIEW_RATING && rating <= MAX_REVIEW_RATING;
 }
 
-// После изменения рецензии страница книги должна получить свежие данные из БД.
-function revalidateBookReviews(googleBooksId: string) {
+// После изменения оценки обновляем страницу книги и статистику её автора.
+function revalidateBookReviewsAndUserProfile(googleBooksId: string, userId: string) {
     revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
+    revalidateUserProfilePage(userId);
 }
 
 // Создаёт новую рецензию или обновляет уже существующую.
@@ -131,7 +133,7 @@ export async function saveCurrentUserReview(
         },
     });
 
-    revalidateBookReviews(normalizedGoogleBooksId);
+    revalidateBookReviewsAndUserProfile(normalizedGoogleBooksId, session.user.id);
 
     return { success: true, review: savedReview };
 }
@@ -162,7 +164,7 @@ export async function deleteCurrentUserReview(
         },
     });
 
-    revalidateBookReviews(normalizedGoogleBooksId);
+    revalidateBookReviewsAndUserProfile(normalizedGoogleBooksId, session.user.id);
 
     return { success: true, review: null };
 }

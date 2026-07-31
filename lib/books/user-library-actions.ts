@@ -4,6 +4,7 @@ import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/g
 import { auth } from "@/auth";
 import { getGoogleBookById } from "@/lib/books/google-books-api";
 import prisma from "@/lib/prisma";
+import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
 import { revalidatePath } from "next/cache";
 
 // Возможные ответы интерфейсу после добавления или удаления книги.
@@ -35,10 +36,11 @@ function isReadingStatus(value: string): value is ReadingStatusValue {
     return ALLOWED_READING_STATUSES.some((readingStatus) => readingStatus === value);
 }
 
-// После изменения БД просим Next.js заново получить данные книги и библиотеки.
-function revalidateBookDetailsAndLibraryPages(googleBooksId: string) {
+// После изменения БД просим Next.js заново получить связанные страницы.
+function revalidateBookDetailsLibraryAndProfilePages(googleBooksId: string, userId: string) {
     revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
     revalidatePath("/library");
+    revalidateUserProfilePage(userId);
 }
 
 // Добавляет книгу в библиотеку текущего пользователя.
@@ -115,7 +117,7 @@ export async function addBookToCurrentUserLibrary(googleBooksId: string): Promis
     });
 
     // Обновляем страницу книги и библиотеку после записи в БД.
-    revalidateBookDetailsAndLibraryPages(normalizedBookId);
+    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
 
     // Клиенту нужен только новый статус, а не вся внутренняя запись Prisma.
     return { success: true, isBookInUserLibrary: true };
@@ -157,7 +159,7 @@ export async function removeBookFromCurrentUserLibrary(
         });
     }
 
-    revalidateBookDetailsAndLibraryPages(normalizedBookId);
+    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
 
     return { success: true, isBookInUserLibrary: false };
 }
@@ -230,7 +232,7 @@ export async function updateCurrentUserBookReadingStatus(
         },
     });
 
-    revalidateBookDetailsAndLibraryPages(normalizedBookId);
+    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
 
     return { success: true, readingStatus: nextReadingStatus };
 }

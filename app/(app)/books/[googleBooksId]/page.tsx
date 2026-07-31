@@ -33,9 +33,13 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
     const bookDetailsReturnPath = getValidatedBookDetailsReturnPath(resolvedSearchParams.returnPath);
-    const backLinkLabel = bookDetailsReturnPath.startsWith("/library")
-        ? "Назад к библиотеке"
-        : "Назад к поиску";
+    let backLinkLabel = "Назад к поиску";
+
+    if (bookDetailsReturnPath.startsWith("/library")) {
+        backLinkLabel = "Назад к библиотеке";
+    } else if (bookDetailsReturnPath.startsWith("/profile")) {
+        backLinkLabel = "Назад к профилю";
+    }
 
     // Загружаем конкретную книгу по ID из адресной строки.
     const [book, session] = await Promise.all([getGoogleBookById(googleBooksId), currentSessionPromise]);

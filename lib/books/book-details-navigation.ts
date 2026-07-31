@@ -35,9 +35,12 @@ export function getValidatedBookDetailsReturnPath(
         return "/";
     }
 
-    // Разрешаем возврат только на главную или в библиотеку внутри приложения.
+    // Разрешаем возврат только в известные разделы внутри приложения.
     const parsedUrl = new URL(returnPath, "http://internal");
-    const isAllowedPath = parsedUrl.pathname === "/" || parsedUrl.pathname === "/library";
+    const isProfilePath =
+        parsedUrl.pathname === "/profile" || parsedUrl.pathname.startsWith("/profile/");
+    const isAllowedPath =
+        parsedUrl.pathname === "/" || parsedUrl.pathname === "/library" || isProfilePath;
 
     return isAllowedPath ? `${parsedUrl.pathname}${parsedUrl.search}` : "/";
 }
