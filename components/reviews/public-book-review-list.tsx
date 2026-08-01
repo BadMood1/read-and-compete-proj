@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UserAvatar } from "@/components/users/user-avatar";
 import { createProfilePathWithReturnPath } from "@/lib/profile/profile-navigation";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
+import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type PublicBookReviewListProps = {
     reviews: PublicBookReviewData[];
@@ -16,10 +17,6 @@ const reviewDateFormatter = new Intl.DateTimeFormat("ru-RU", {
     year: "numeric",
     timeZone: "Europe/Moscow",
 });
-
-function getReviewAuthorDisplayName(authorName: string | null) {
-    return authorName?.trim() || "Читатель";
-}
 
 // Серверный компонент: ему не нужны состояние, обработчики событий и клиентский JavaScript.
 export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReviewListProps) {
@@ -50,7 +47,7 @@ export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReview
                             userId: review.author.id,
                             returnPath: bookPagePath,
                         });
-                        const authorDisplayName = getReviewAuthorDisplayName(review.author.name);
+                        const authorDisplayName = getUserDisplayName(review.author.name);
 
                         return (
                             <article key={review.id} className="py-6 first:pt-5 last:pb-0">

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/users/user-avatar";
+import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type ProfileHeaderProps = {
     profileDisplayName: string | null;
@@ -16,7 +17,7 @@ export function ProfileHeader({
     profileImageUrl,
     isCurrentUserProfile,
 }: ProfileHeaderProps) {
-    const displayName = profileDisplayName?.trim() || "Читатель";
+    const displayName = getUserDisplayName(profileDisplayName);
 
     return (
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">

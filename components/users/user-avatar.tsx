@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getUserDisplayName } from "@/lib/users/user-display-name";
 import { cn } from "@/lib/utils";
 
 type UserAvatarProps = {
@@ -31,7 +32,7 @@ export function UserAvatar({
     size = "default",
     className,
 }: UserAvatarProps) {
-    const normalizedDisplayName = displayName.trim() || "Читатель";
+    const normalizedDisplayName = getUserDisplayName(displayName);
     const normalizedImageUrl = imageUrl?.trim() || null;
 
     // Запоминаем URL, который не загрузился, чтобы не повторять его до смены изображения.

@@ -1,9 +1,8 @@
 "use server";
 
 import { auth } from "@/auth";
+import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
 import prisma from "@/lib/prisma";
-import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
-import { revalidatePath } from "next/cache";
 
 const MIN_REVIEW_RATING = 1;
 const MAX_REVIEW_RATING = 10;
@@ -15,7 +14,7 @@ export type CurrentUserReviewData = {
 };
 
 // Один тип ответа подходит и сохранению, и удалению рецензии.
-export type CurrentUserReviewMutationResult =
+type CurrentUserReviewMutationResult =
     | {
           success: true;
           review: CurrentUserReviewData | null;
@@ -27,12 +26,6 @@ export type CurrentUserReviewMutationResult =
 
 function isValidReviewRating(rating: number) {
     return Number.isInteger(rating) && rating >= MIN_REVIEW_RATING && rating <= MAX_REVIEW_RATING;
-}
-
-// После изменения оценки обновляем страницу книги и статистику её автора.
-function revalidateBookReviewsAndUserProfile(googleBooksId: string, userId: string) {
-    revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
-    revalidateUserProfilePage(userId);
 }
 
 // Создаёт новую рецензию или обновляет уже существующую.
@@ -71,21 +64,21 @@ export async function saveCurrentUserReview(
         },
         select: {
             id: true, // берём Book.id
-            // переходим из Book к связанным записям Userbook[]
-            readers: {
-                where: {
-                    userId: session.user.id, // берём нужный Userbook
-                },
+            // Нам нужно только наличие связей, поэтому считаем их без загрузки массивов.
+            _count: {
                 select: {
-                    id: true, // берём Userbook.id (единственная запись)
-                },
-            },
-            reviews: {
-                where: {
-                    userId: session.user.id,
-                },
-                select: {
-                    id: true, // берём Review.id (единственный отзыв)
+                    readers: {
+                        // Сколько UserBook текущего пользователя связано с этой книгой.
+                        where: {
+                            userId: session.user.id,
+                        },
+                    },
+                    reviews: {
+                        // Сколько Review текущего пользователя уже существует у этой книги.
+                        where: {
+                            userId: session.user.id,
+                        },
+                    },
                 },
             },
         },
@@ -97,8 +90,8 @@ export async function saveCurrentUserReview(
     }
 
     // есть ли у пользователя наша книга в библиотеке
-    const isBookInCurrentUserLibrary = book.readers.length > 0;
-    const doesCurrentUserAlreadyHaveReview = book.reviews.length > 0;
+    const isBookInCurrentUserLibrary = book._count.readers > 0;
+    const doesCurrentUserAlreadyHaveReview = book._count.reviews > 0;
 
     // Новую рецензию разрешаем только для своей библиотеки.
     // Существующую можно редактировать даже после удаления UserBook.
@@ -133,7 +126,7 @@ export async function saveCurrentUserReview(
         },
     });
 
-    revalidateBookReviewsAndUserProfile(normalizedGoogleBooksId, session.user.id);
+    revalidateBookDetailsAndUserProfilePages(normalizedGoogleBooksId, session.user.id);
 
     return { success: true, review: savedReview };
 }
@@ -164,7 +157,7 @@ export async function deleteCurrentUserReview(
         },
     });
 
-    revalidateBookReviewsAndUserProfile(normalizedGoogleBooksId, session.user.id);
+    revalidateBookDetailsAndUserProfilePages(normalizedGoogleBooksId, session.user.id);
 
     return { success: true, review: null };
 }

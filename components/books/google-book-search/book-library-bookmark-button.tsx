@@ -10,7 +10,7 @@ import {
 } from "@/lib/books/user-library-actions";
 import { cn } from "@/lib/utils";
 
-export type BookLibraryBookmarkState = "not-added" | "adding" | "added" | "removing";
+type BookLibraryBookmarkState = "not-added" | "adding" | "added" | "removing";
 
 type BookLibraryBookmarkButtonProps = {
     googleBooksId: string;

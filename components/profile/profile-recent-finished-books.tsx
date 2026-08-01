@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
-import { createProfilePath } from "@/lib/profile/profile-navigation";
 
 type ProfileRecentFinishedBook = {
     googleBooksId: string;
@@ -14,7 +13,7 @@ type ProfileRecentFinishedBook = {
 };
 
 type ProfileRecentFinishedBooksProps = {
-    profileUserId: string;
+    bookDetailsReturnPath: string;
     books: ProfileRecentFinishedBook[];
 };
 
@@ -26,14 +25,26 @@ const finishedBookDateFormatter = new Intl.DateTimeFormat("ru-RU", {
 });
 
 // Показывает последние книги, которые пользователь отметил прочитанными.
-export function ProfileRecentFinishedBooks({ profileUserId, books }: ProfileRecentFinishedBooksProps) {
+export function ProfileRecentFinishedBooks({
+    bookDetailsReturnPath,
+    books,
+}: ProfileRecentFinishedBooksProps) {
+    // Одинаковый заголовок нужен и заполненному, и пустому состоянию секции.
+    const sectionHeading = (
+        <>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                История чтения
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                Последние прочитанные
+            </h2>
+        </>
+    );
+
     if (books.length === 0) {
         return (
             <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                    История чтения
-                </p>
-                {/* <h2 className="mt-2 text-2xl font-semibold tracking-tight">Последние прочитанные</h2> */}
+                {sectionHeading}
 
                 <div className="mt-5 flex min-h-40 sm:min-h-50 flex-col items-center justify-center rounded-2xl bg-muted/55 px-4 text-center">
                     <BookOpen className="size-8 text-primary/65" aria-hidden="true" />
@@ -46,19 +57,16 @@ export function ProfileRecentFinishedBooks({ profileUserId, books }: ProfileRece
         );
     }
 
-    const profileReturnPath = createProfilePath(profileUserId);
-
     return (
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">История чтения</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Последние прочитанные</h2>
+            {sectionHeading}
 
             <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {books.map((book) => {
                     // returnPath возвращает со страницы книги обратно в этот профиль.
                     const bookDetailsPath = createBookDetailsPath({
                         googleBooksId: book.googleBooksId,
-                        returnPath: profileReturnPath,
+                        returnPath: bookDetailsReturnPath,
                     });
 
                     return (

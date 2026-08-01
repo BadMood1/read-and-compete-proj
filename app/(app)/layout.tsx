@@ -27,7 +27,7 @@ async function AuthenticatedAppLayout({
     const currentUser = session?.user;
 
     // Неавторизованный пользователь не должен увидеть защищённые страницы.
-    // Navbar теперь формирует ссылку /profile/[id]. Поэтому ему обязательно нужен гарантированный id.
+    // Navbar формирует публичный URL профиля, поэтому его контракт требует гарантированный id.
     if (!currentUser?.id) {
         redirect("/login");
     }
@@ -52,7 +52,7 @@ function AppLayoutLoading() {
     return (
         <div className="flex min-h-svh flex-col" role="status" aria-label="Загрузка приложения">
             <header className="border-b border-border/70 bg-card/90 shadow-[0_5px_24px_rgba(48,36,28,0.07)]">
-                <nav className="mx-auto flex h-16 w-full max-w-7xl animate-pulse items-center justify-between gap-3 px-4 sm:px-6">
+                <nav className="mx-auto flex h-16 w-full max-w-7xl motion-safe:animate-pulse items-center justify-between gap-3 px-4 sm:px-6">
                     {/* Заглушки логотипа и названия приложения. */}
                     <div className="flex shrink-0 items-center gap-2.5">
                         <span className="size-9 rounded-xl bg-secondary/70" />

@@ -2,9 +2,9 @@
 
 import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
+import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
 import { getGoogleBookById } from "@/lib/books/google-books-api";
 import prisma from "@/lib/prisma";
-import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
 import { revalidatePath } from "next/cache";
 
 // Возможные ответы интерфейсу после добавления или удаления книги.
@@ -19,7 +19,7 @@ export type BookLibraryMutationResult =
       };
 
 // Ответ после изменения статуса нужен dropdown, чтобы подтвердить сохранённое значение.
-export type UpdateCurrentUserBookReadingStatusResult =
+type UpdateCurrentUserBookReadingStatusResult =
     | {
           success: true;
           readingStatus: ReadingStatusValue;
@@ -36,11 +36,10 @@ function isReadingStatus(value: string): value is ReadingStatusValue {
     return ALLOWED_READING_STATUSES.some((readingStatus) => readingStatus === value);
 }
 
-// После изменения БД просим Next.js заново получить связанные страницы.
-function revalidateBookDetailsLibraryAndProfilePages(googleBooksId: string, userId: string) {
-    revalidatePath(`/books/${encodeURIComponent(googleBooksId)}`);
+// Изменение личной библиотеки влияет на неё саму, страницу книги и статистику профиля.
+function revalidatePagesAfterCurrentUserLibraryChange(googleBooksId: string, userId: string) {
+    revalidateBookDetailsAndUserProfilePages(googleBooksId, userId);
     revalidatePath("/library");
-    revalidateUserProfilePage(userId);
 }
 
 // Добавляет книгу в библиотеку текущего пользователя.
@@ -62,6 +61,10 @@ export async function addBookToCurrentUserLibrary(googleBooksId: string): Promis
     // Сначала ищем книгу локально, чтобы не обращаться к Google при каждом добавлении.
     const existingBook = await prisma.book.findUnique({
         where: { googleBooksId: normalizedBookId },
+        // Дальше нужен только локальный ID для создания связи UserBook.
+        select: {
+            id: true,
+        },
     });
 
     let book = existingBook;
@@ -97,6 +100,9 @@ export async function addBookToCurrentUserLibrary(googleBooksId: string): Promis
                 categories: googleBook.categories,
                 language: googleBook.language,
             },
+            select: {
+                id: true,
+            },
         });
     }
 
@@ -117,7 +123,7 @@ export async function addBookToCurrentUserLibrary(googleBooksId: string): Promis
     });
 
     // Обновляем страницу книги и библиотеку после записи в БД.
-    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
+    revalidatePagesAfterCurrentUserLibraryChange(normalizedBookId, session.user.id);
 
     // Клиенту нужен только новый статус, а не вся внутренняя запись Prisma.
     return { success: true, isBookInUserLibrary: true };
@@ -139,27 +145,18 @@ export async function removeBookFromCurrentUserLibrary(
         return { success: false, error: "Не удалось определить книгу." };
     }
 
-    const book = await prisma.book.findUnique({
+    // deleteMany не падает, если связи уже нет, а фильтр по Book убирает отдельный запрос его ID.
+    // Общая запись Book остаётся, потому что она может использоваться другими читателями.
+    await prisma.userBook.deleteMany({
         where: {
-            googleBooksId: normalizedBookId,
-        },
-        select: {
-            id: true,
+            userId: session.user.id,
+            book: {
+                googleBooksId: normalizedBookId,
+            },
         },
     });
 
-    if (book) {
-        // удаляем одну запись, но deleteMany, т.к. если записи нет, то не будет ошибки
-        // Общая запись Book остаётся, потому что она может использоваться другими читателями.
-        await prisma.userBook.deleteMany({
-            where: {
-                userId: session.user.id,
-                bookId: book.id,
-            },
-        });
-    }
-
-    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
+    revalidatePagesAfterCurrentUserLibraryChange(normalizedBookId, session.user.id);
 
     return { success: true, isBookInUserLibrary: false };
 }
@@ -232,7 +229,7 @@ export async function updateCurrentUserBookReadingStatus(
         },
     });
 
-    revalidateBookDetailsLibraryAndProfilePages(normalizedBookId, session.user.id);
+    revalidatePagesAfterCurrentUserLibraryChange(normalizedBookId, session.user.id);
 
     return { success: true, readingStatus: nextReadingStatus };
 }

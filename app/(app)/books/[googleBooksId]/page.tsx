@@ -1,9 +1,9 @@
 import { getGoogleBookById } from "@/lib/books/google-books-api";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
+import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { BookRatingSummary } from "@/components/reviews/book-rating-summary";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import {
@@ -87,13 +87,10 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
             {/* returnPath сохраняет источник перехода, но принимается только после проверки пути. */}
-            <Link
+            <PageBackNavigationLink
                 href={bookDetailsReturnPath}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
-            >
-                <ArrowLeft className="size-4" aria-hidden="true" />
-                {backLinkLabel}
-            </Link>
+                label={backLinkLabel}
+            />
 
             {/* На планшете описание занимает всю нижнюю строку, на desktop возвращается вправо. */}
             <article className="mt-6 grid gap-8 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8 md:grid-cols-[240px_minmax(0,1fr)] md:gap-x-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-x-12 xl:grid-cols-[360px_minmax(0,1fr)]">

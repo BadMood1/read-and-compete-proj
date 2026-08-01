@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createProfilePath } from "@/lib/profile/profile-navigation";
+import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type NavbarUser = {
   id: string;
@@ -22,7 +23,7 @@ type NavbarUser = {
 };
 
 export function Navbar({ user }: { user: NavbarUser }) {
-  const displayName = user.name ?? "Читатель";
+  const displayName = getUserDisplayName(user.name);
   // В интерфейсе сразу используем публичный URL, не заходя через redirect /profile.
   const profilePath = createProfilePath(user.id);
 

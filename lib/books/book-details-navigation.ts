@@ -1,19 +1,28 @@
+import {
+    createInternalPathWithReturnPath,
+    getSafeInternalPathDetails,
+    type ReturnPathSearchParameter,
+} from "@/lib/navigation/internal-return-path";
+
 type CreateBookDetailsPathOptions = {
     googleBooksId: string;
     returnPath: string;
 };
 
-// Собирает путь на страницу книги и добавляет адрес, куда потом вернуться.
+// Собирает базовый путь книги без query-параметров, например для ревалидации страницы.
+export function createBookDetailsBasePath(googleBooksId: string) {
+    return `/books/${encodeURIComponent(googleBooksId)}`;
+}
+
+// Собирает ссылку на страницу книги и добавляет адрес, куда потом вернуться.
 export function createBookDetailsPath({
     googleBooksId,
     returnPath,
 }: CreateBookDetailsPathOptions) {
-    const encodedGoogleBooksId = encodeURIComponent(googleBooksId);
-    const searchParams = new URLSearchParams({
+    return createInternalPathWithReturnPath(
+        createBookDetailsBasePath(googleBooksId),
         returnPath,
-    });
-
-    return `/books/${encodedGoogleBooksId}?${searchParams.toString()}`;
+    );
 }
 
 // Сохраняет поисковый запрос в пути главной страницы.
@@ -27,20 +36,22 @@ export function createSearchResultsReturnPath(query: string) {
 
 // Принимаем только безопасный путь внутри приложения, иначе возвращаем на главную.
 export function getValidatedBookDetailsReturnPath(
-    rawReturnPath: string | string[] | undefined,
+    rawReturnPath: ReturnPathSearchParameter,
 ) {
-    const returnPath = Array.isArray(rawReturnPath) ? rawReturnPath[0] : rawReturnPath;
+    const safeReturnPath = getSafeInternalPathDetails(rawReturnPath);
 
-    if (!returnPath || !returnPath.startsWith("/") || returnPath.startsWith("//")) {
+    if (!safeReturnPath) {
         return "/";
     }
 
-    // Разрешаем возврат только в известные разделы внутри приложения.
-    const parsedUrl = new URL(returnPath, "http://internal");
+    // Общий helper проверяет безопасность, а здесь разрешаем только известные разделы.
     const isProfilePath =
-        parsedUrl.pathname === "/profile" || parsedUrl.pathname.startsWith("/profile/");
+        safeReturnPath.pathname === "/profile" ||
+        safeReturnPath.pathname.startsWith("/profile/");
     const isAllowedPath =
-        parsedUrl.pathname === "/" || parsedUrl.pathname === "/library" || isProfilePath;
+        safeReturnPath.pathname === "/" ||
+        safeReturnPath.pathname === "/library" ||
+        isProfilePath;
 
-    return isAllowedPath ? `${parsedUrl.pathname}${parsedUrl.search}` : "/";
+    return isAllowedPath ? safeReturnPath.pathWithSearchParameters : "/";
 }

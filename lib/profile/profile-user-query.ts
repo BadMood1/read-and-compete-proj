@@ -13,7 +13,7 @@ export async function getUserProfileById(userId: string) {
     }
 
     // Все данные профиля друг от друга не зависят, поэтому получаем их одновременно.
-    const [profileUser, finishedPagesSummary, reviewSummary, recentFinishedBookEntries] =
+    const [profileUser, finishedPagesSummary, ratingSummary, recentFinishedBookEntries] =
         await Promise.all([
             prisma.user.findUnique({
                 where: {
@@ -102,8 +102,8 @@ export async function getUserProfileById(userId: string) {
             finishedBooksCount: profileUser._count.library,
             // Если прочитанных книг с известным числом страниц нет, показываем ноль.
             totalFinishedPages: finishedPagesSummary._sum.pageCount ?? 0,
-            reviewsCount: reviewSummary._count._all,
-            averageReviewRating: reviewSummary._avg.rating,
+            ratingsCount: ratingSummary._count._all,
+            averageReviewRating: ratingSummary._avg.rating,
         },
         // Убираем служебную вложенность UserBook.book, чтобы карточкам было проще читать данные.
         recentFinishedBooks: recentFinishedBookEntries.map((userLibraryEntry) => ({

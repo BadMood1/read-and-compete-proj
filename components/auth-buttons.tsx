@@ -1,6 +1,4 @@
-import { LogOut } from "lucide-react";
-
-import { signIn, signOut } from "@/auth";
+import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 
 type OAuthProvider = "github" | "google";
@@ -73,25 +71,6 @@ export function SignInButton({ provider }: { provider: OAuthProvider }) {
       >
         {content.icon}
         {content.label}
-      </Button>
-    </form>
-  );
-}
-
-export function SignOutButton() {
-  return (
-    <form
-      action={async () => {
-        "use server";
-
-        // Удаляем текущую сессию и возвращаем пользователя на главную.
-        await signOut({ redirectTo: "/login" });
-      }}
-      className="w-full"
-    >
-      <Button type="submit" variant="outline" size="lg" className="w-full">
-        <LogOut />
-        Выйти
       </Button>
     </form>
   );

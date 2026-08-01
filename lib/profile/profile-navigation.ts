@@ -1,3 +1,9 @@
+import {
+    createInternalPathWithReturnPath,
+    getSafeInternalPathDetails,
+    type ReturnPathSearchParameter,
+} from "@/lib/navigation/internal-return-path";
+
 // Собирает единый адрес профиля, чтобы разные части приложения кодировали ID одинаково.
 export function createProfilePath(userId: string) {
     return `/profile/${encodeURIComponent(userId.trim())}`;
@@ -13,28 +19,25 @@ export function createProfilePathWithReturnPath({
     userId,
     returnPath,
 }: CreateProfilePathWithReturnPathOptions) {
-    const searchParams = new URLSearchParams({ returnPath });
-
-    return `${createProfilePath(userId)}?${searchParams.toString()}`;
+    return createInternalPathWithReturnPath(createProfilePath(userId), returnPath);
 }
 
 // Профиль принимает возврат только на страницу книги внутри нашего приложения.
 export function getValidatedProfileReturnPath(
-    rawReturnPath: string | string[] | undefined,
+    rawReturnPath: ReturnPathSearchParameter,
 ) {
-    const returnPath = Array.isArray(rawReturnPath) ? rawReturnPath[0] : rawReturnPath;
+    const safeReturnPath = getSafeInternalPathDetails(rawReturnPath);
 
-    if (!returnPath || !returnPath.startsWith("/") || returnPath.startsWith("//")) {
+    if (!safeReturnPath) {
         return null;
     }
 
-    const parsedUrl = new URL(returnPath, "http://internal");
-    const pathSegments = parsedUrl.pathname.split("/").filter(Boolean);
+    // Общий helper проверяет безопасность, а здесь остаётся правило конкретного раздела.
+    const pathSegments = safeReturnPath.pathname.split("/").filter(Boolean);
     const isBookPage =
-        parsedUrl.origin === "http://internal" &&
         pathSegments.length === 2 &&
         pathSegments[0] === "books" &&
         pathSegments[1].length > 0;
 
-    return isBookPage ? `${parsedUrl.pathname}${parsedUrl.search}` : null;
+    return isBookPage ? safeReturnPath.pathWithSearchParameters : null;
 }

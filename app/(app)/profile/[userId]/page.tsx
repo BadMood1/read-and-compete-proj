@@ -1,14 +1,16 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import {
     ProfileHeader,
     ProfileRecentFinishedBooks,
     ProfileStatistics,
 } from "@/components/profile";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
-import { getValidatedProfileReturnPath } from "@/lib/profile/profile-navigation";
+import {
+    createProfilePath,
+    getValidatedProfileReturnPath,
+} from "@/lib/profile/profile-navigation";
 import { getUserProfileById } from "@/lib/profile/profile-user-query";
 
 type ProfilePageProps = {
@@ -45,17 +47,17 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         notFound();
     }
 
+    // Для карточек нужен простой возврат в профиль без бесконечного вложения returnPath.
+    const currentProfilePagePath = createProfilePath(profileUser.id);
+
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
             <div className="space-y-6">
                 {profileReturnPath ? (
-                    <Link
+                    <PageBackNavigationLink
                         href={profileReturnPath}
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
-                    >
-                        <ArrowLeft className="size-4" aria-hidden="true" />
-                        Назад к книге
-                    </Link>
+                        label="Назад к книге"
+                    />
                 ) : null}
 
                 <ProfileHeader
@@ -67,7 +69,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
                 <ProfileStatistics statistics={profileUser.statistics} />
 
                 <ProfileRecentFinishedBooks
-                    profileUserId={profileUser.id}
+                    bookDetailsReturnPath={currentProfilePagePath}
                     books={profileUser.recentFinishedBooks}
                 />
             </div>

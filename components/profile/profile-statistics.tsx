@@ -16,7 +16,7 @@ type ProfileStatisticsProps = {
     statistics: {
         finishedBooksCount: number;
         totalFinishedPages: number;
-        reviewsCount: number;
+        ratingsCount: number;
         averageReviewRating: number | null;
     };
 };
@@ -116,7 +116,7 @@ function createProfileStatisticCards(
         {
             // Review без текста всё равно содержит оценку и тоже входит в этот счётчик.
             label: "Оценок",
-            value: integerNumberFormatter.format(statistics.reviewsCount),
+            value: integerNumberFormatter.format(statistics.ratingsCount),
             icon: MessageSquareText,
         },
         {

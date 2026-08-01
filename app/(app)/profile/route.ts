@@ -15,6 +15,3 @@ export async function GET() {
 
     redirect(createProfilePath(currentUserId));
 }
-
-// мы создаем route.ts в app папке, то по запросу по /profile
-//  вместо page.tsx вызывается GET из route.ts и layout не рендерится

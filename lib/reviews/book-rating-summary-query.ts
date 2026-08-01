@@ -2,7 +2,7 @@ import "server-only";
 
 import prisma from "@/lib/prisma";
 
-export type BookRatingSummary = {
+type BookRatingSummary = {
     averageRating: number | null;
     ratingsCount: number;
 };
