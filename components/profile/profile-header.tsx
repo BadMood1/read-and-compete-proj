@@ -1,23 +1,34 @@
 import { LibraryBig } from "lucide-react";
 import Link from "next/link";
 
+import { ProfileFriendshipControls } from "@/components/profile/profile-friendship-controls";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/users/user-avatar";
+import {
+    CurrentUserFriendshipState,
+    type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
+} from "@/lib/friends/current-user-friendship-state";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type ProfileHeaderProps = {
+    profileUserId: string;
     profileDisplayName: string | null;
     profileImageUrl: string | null;
-    isCurrentUserProfile: boolean;
+    currentUserFriendshipState: CurrentUserFriendshipStateValue;
 };
 
 // Верхний блок знакомит с владельцем профиля и оставляет только актуальное действие.
 export function ProfileHeader({
+    profileUserId,
     profileDisplayName,
     profileImageUrl,
-    isCurrentUserProfile,
+    currentUserFriendshipState,
 }: ProfileHeaderProps) {
     const displayName = getUserDisplayName(profileDisplayName);
+
+    // В своём профиле нужна ссылка на библиотеку, в чужом — управление дружбой.
+    const isCurrentUserProfile =
+        currentUserFriendshipState === CurrentUserFriendshipState.CURRENT_USER_PROFILE;
 
     return (
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
@@ -47,7 +58,14 @@ export function ProfileHeader({
                             Моя библиотека
                         </Link>
                     </Button>
-                ) : null}
+                ) : (
+                    <ProfileFriendshipControls
+                        // key сбрасывает локальное состояние кнопок при переходе на другой профиль.
+                        key={profileUserId}
+                        profileUserId={profileUserId}
+                        initialCurrentUserFriendshipState={currentUserFriendshipState}
+                    />
+                )}
             </div>
         </section>
     );

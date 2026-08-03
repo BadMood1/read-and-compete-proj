@@ -15,6 +15,13 @@ enum ReadingStatus {
   DROPPED
 }
 
+// Текущее состояние заявки между отправителем и получателем.
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 // OAuth-профиль GitHub или Google, привязанный к пользователю.
 model Account {
   id                String  @id @default(cuid())
@@ -62,6 +69,10 @@ model User {
   sessions Session[]
   library  UserBook[]
   reviews  Review[]
+
+  // Две отдельные связи нужны, потому что User участвует в заявке в разных ролях.
+  sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
 
   @@map("users")
 }
@@ -134,6 +145,28 @@ model Review {
   // Ускоряет получение рецензий книги с сортировкой от новых к старым.
   @@index([bookId, createdAt])
   @@map("reviews")
+}
+
+// Заявка в друзья; после принятия эта же запись представляет дружбу пользователей.
+model FriendRequest {
+  id         String              @id @default(cuid())
+  senderId   String              @map("sender_id")
+  receiverId String              @map("receiver_id")
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  // Именованные relation позволяют Prisma отличить отправителя от получателя.
+  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  // Повторную заявку в том же направлении создать нельзя.
+  // Обратное направление и заявку самому себе дополнительно проверим в Server Action.
+  @@unique([senderId, receiverId])
+  // Ускоряют списки входящих и исходящих заявок, отфильтрованные по статусу.
+  @@index([receiverId, status, createdAt])
+  @@index([senderId, status, createdAt])
+  @@map("friend_requests")
 }
 
 // Одноразовый токен для будущего входа или подтверждения по email.
