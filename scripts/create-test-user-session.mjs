@@ -7,6 +7,25 @@ const { Client } = pg;
 const TEST_USER_ID = "test-review-user-alina";
 const TEST_SESSION_LIFETIME_IN_HOURS = 24;
 
+// Собирает одну cookie в формате, который Cookie Editor умеет импортировать напрямую.
+function createCookieEditorImport(sessionToken, expiresAt) {
+    return [
+        {
+            domain: "localhost",
+            expirationDate: expiresAt.getTime() / 1000,
+            hostOnly: true,
+            httpOnly: true,
+            name: "authjs.session-token",
+            path: "/",
+            sameSite: "lax",
+            secure: false,
+            session: false,
+            storeId: null,
+            value: sessionToken,
+        },
+    ];
+}
+
 function getDatabaseConnectionString() {
     const databaseUrl = process.env.DATABASE_URL;
 
@@ -58,10 +77,8 @@ async function createTestUserSession() {
 
         await client.query("COMMIT");
 
-        console.log(`Тестовая сессия создана для: ${userResult.rows[0].name}`);
-        console.log("Cookie name: authjs.session-token");
-        console.log(`Cookie value: ${sessionToken}`);
-        console.log(`Expires: ${expiresAt.toISOString()}`);
+        // Выводим готовый JSON без пояснений, чтобы его можно было сразу вставить в Cookie Editor.
+        console.log(JSON.stringify(createCookieEditorImport(sessionToken, expiresAt), null, 2));
     } catch (error) {
         await client.query("ROLLBACK");
         throw error;
