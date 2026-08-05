@@ -152,6 +152,7 @@ model FriendRequest {
   id         String              @id @default(cuid())
   senderId   String              @map("sender_id")
   receiverId String              @map("receiver_id")
+  pairKey    String              @unique @map("pair_key")
   status     FriendRequestStatus @default(PENDING)
   createdAt  DateTime            @default(now()) @map("created_at")
   updatedAt  DateTime            @updatedAt @map("updated_at")
@@ -160,9 +161,9 @@ model FriendRequest {
   sender   User @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
 
-  // Повторную заявку в том же направлении создать нельзя.
-  // Обратное направление и заявку самому себе дополнительно проверим в Server Action.
-  @@unique([senderId, receiverId])
+  // Канонический pairKey одинаков для A -> B и B -> A, поэтому между двумя
+  // пользователями может существовать только одна заявка или дружба.
+  // CHECK из миграции дополнительно запрещает senderId === receiverId.
   // Ускоряют списки входящих и исходящих заявок, отфильтрованные по статусу.
   @@index([receiverId, status, createdAt])
   @@index([senderId, status, createdAt])

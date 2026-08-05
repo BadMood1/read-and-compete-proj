@@ -1,15 +1,18 @@
 "use client";
 
-import { Clock3, LoaderCircle, UserCheck, UserPlus, X } from "lucide-react";
-import { useState } from "react";
+import { Clock3, LoaderCircle, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
+import { useRef, useState } from "react";
 
+import { ProfileFriendshipActionConfirmationDialog } from "@/components/profile/profile-friendship-action-confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
 import {
     acceptCurrentUserFriendRequest,
+    cancelCurrentUserOutgoingFriendRequest,
     rejectCurrentUserFriendRequest,
+    removeCurrentUserFriendship,
     sendCurrentUserFriendRequest,
-} from "@/lib/friends/current-user-friend-request-actions";
+} from "@/lib/friends/current-user-friendship-actions";
 import {
     CurrentUserFriendshipState,
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
@@ -22,9 +25,9 @@ type ProfileFriendshipControlsProps = {
 };
 
 // По имени операции определяем, какой loading-текст сейчас нужно показать.
-type CurrentUserFriendshipMutationName = "send" | "accept" | "reject";
+type CurrentUserFriendshipMutationName = "send" | "accept" | "reject" | "cancel" | "remove";
 
-// Все три Server Action имеют одинаковые аргументы и результат, поэтому подходят под один тип.
+// Все Server Action имеют одинаковые аргументы и результат, поэтому подходят под один тип.
 type CurrentUserFriendshipMutation = typeof sendCurrentUserFriendRequest;
 
 type ProfileFriendshipMutationErrorMessageProps = {
@@ -32,7 +35,7 @@ type ProfileFriendshipMutationErrorMessageProps = {
     isVisible: boolean;
 };
 
-// Единый вид ошибки используется и отправкой, и ответом на входящую заявку.
+// Единый вид ошибки используется всеми действиями с заявкой и дружбой.
 function ProfileFriendshipMutationErrorMessage({
     errorMessage,
     isVisible,
@@ -68,10 +71,14 @@ export function ProfileFriendshipControls({
     const [pendingFriendshipMutation, setPendingFriendshipMutation] =
         useState<CurrentUserFriendshipMutationName | null>(null);
 
+    // После подтверждения кнопка может смениться вместе с состоянием дружбы.
+    // Один ref всегда указывает на главное действие уже актуальной ветки интерфейса.
+    const primaryFriendshipActionButtonRef = useRef<HTMLButtonElement>(null);
+
     // Ошибка появляется рядом с кнопкой и сама плавно исчезает.
     const [errorMessage, setErrorMessage, isErrorMessageVisible] = useAutoDismissErrorMessage();
 
-    // Общая функция не дублирует loading, обработку результата и ошибок для трёх кнопок.
+    // Общая функция не дублирует loading, обработку результата и ошибок для всех кнопок.
     async function runCurrentUserFriendshipMutation(
         mutationName: CurrentUserFriendshipMutationName,
         requiredFriendshipState: CurrentUserFriendshipStateValue,
@@ -79,10 +86,7 @@ export function ProfileFriendshipControls({
     ) {
         // requiredFriendshipState задаёт сама кнопка: например, принять заявку можно только
         // из INCOMING_FRIEND_REQUEST. Проверка также блокирует параллельную операцию.
-        if (
-            pendingFriendshipMutation !== null ||
-            currentUserFriendshipState !== requiredFriendshipState
-        ) {
+        if (pendingFriendshipMutation !== null || currentUserFriendshipState !== requiredFriendshipState) {
             return;
         }
 
@@ -94,14 +98,16 @@ export function ProfileFriendshipControls({
             // Вызываем переданный Server Action с ID владельца открытого профиля.
             const result = await mutation(profileUserId);
 
-            // Ожидаемая серверная ошибка показывается возле кнопки и не меняет состояние UI.
+            // Даже error-ответ может содержать актуальное состояние для устаревшей вкладки.
+            if (result.currentUserFriendshipState) {
+                setCurrentUserFriendshipState(result.currentUserFriendshipState);
+            }
+
+            // После синхронизации кнопок отдельно показываем причину неудачной операции.
             if (!result.success) {
                 setErrorMessage(result.error);
                 return;
             }
-
-            // Успешный ответ сразу переключает интерфейс на новое состояние отношений.
-            setCurrentUserFriendshipState(result.currentUserFriendshipState);
         } catch {
             // Сюда попадают неожиданные ошибки сети или выполнения Server Action.
             setErrorMessage("Не удалось выполнить действие. Попробуйте ещё раз.");
@@ -136,6 +142,35 @@ export function ProfileFriendshipControls({
         );
     }
 
+    // Сохраняет клавиатурный фокус
+    function focusPrimaryFriendshipActionAfterMutation() {
+        // React сначала применит новое состояние, а на следующем кадре ref уже укажет
+        // на новую кнопку, поэтому фокус не потеряется после размонтирования dialog trigger.
+        window.requestAnimationFrame(() => {
+            primaryFriendshipActionButtonRef.current?.focus();
+        });
+    }
+
+    async function handleCancelOutgoingFriendRequest() {
+        await runCurrentUserFriendshipMutation(
+            "cancel",
+            CurrentUserFriendshipState.OUTGOING_FRIEND_REQUEST,
+            cancelCurrentUserOutgoingFriendRequest,
+        );
+
+        focusPrimaryFriendshipActionAfterMutation();
+    }
+
+    async function handleRemoveFriendship() {
+        await runCurrentUserFriendshipMutation(
+            "remove",
+            CurrentUserFriendshipState.FRIENDS,
+            removeCurrentUserFriendship,
+        );
+
+        focusPrimaryFriendshipActionAfterMutation();
+    }
+
     // --- ВЫБОР КНОПОК ПО ТЕКУЩЕМУ СОСТОЯНИЮ ДРУЖБЫ ---
 
     // Все хуки находятся выше ранних return и вызываются при каждом рендере в одном порядке.
@@ -151,18 +186,23 @@ export function ProfileFriendshipControls({
 
         return (
             <div className="relative w-full sm:w-auto">
-                <div className="flex w-full gap-2 sm:w-auto">
+                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
                     <Button
+                        ref={primaryFriendshipActionButtonRef}
                         type="button"
                         size="lg"
-                        className="h-11 flex-1 rounded-xl px-4 sm:flex-none"
+                        className="h-11 min-w-0 rounded-xl px-2 sm:flex-none sm:px-4"
                         onClick={handleAcceptFriendRequest}
                         disabled={isAnsweringFriendRequest}
+                        aria-label={isAcceptingFriendRequest ? "Принимаем заявку..." : undefined}
+                        aria-busy={isAcceptingFriendRequest}
                     >
                         {isAcceptingFriendRequest ? (
                             <>
                                 <LoaderCircle className="animate-spin" aria-hidden="true" />
-                                Принимаем...
+                                {/* Короткая мобильная подпись оставляет обе кнопки в одной строке на 320 px. */}
+                                <span className="sm:hidden">Ждём...</span>
+                                <span className="hidden sm:inline">Принимаем...</span>
                             </>
                         ) : (
                             <>
@@ -175,14 +215,17 @@ export function ProfileFriendshipControls({
                         type="button"
                         variant="outline"
                         size="lg"
-                        className="h-11 flex-1 rounded-xl px-4 sm:flex-none"
+                        className="h-11 min-w-0 rounded-xl px-2 sm:flex-none sm:px-4"
                         onClick={handleRejectFriendRequest}
                         disabled={isAnsweringFriendRequest}
+                        aria-label={isRejectingFriendRequest ? "Отклоняем заявку..." : undefined}
+                        aria-busy={isRejectingFriendRequest}
                     >
                         {isRejectingFriendRequest ? (
                             <>
                                 <LoaderCircle className="animate-spin" aria-hidden="true" />
-                                Отклоняем...
+                                <span className="sm:hidden">Ждём...</span>
+                                <span className="hidden sm:inline">Отклоняем...</span>
                             </>
                         ) : (
                             <>
@@ -201,23 +244,59 @@ export function ProfileFriendshipControls({
         );
     }
 
-    // Исходящая заявка пока только отображается; её отмену добавим отдельной операцией.
+    // Исходящую заявку можно отменить только после явного подтверждения.
     if (currentUserFriendshipState === CurrentUserFriendshipState.OUTGOING_FRIEND_REQUEST) {
+        const isCancellingOutgoingFriendRequest = pendingFriendshipMutation === "cancel";
+
         return (
-            <Button type="button" variant="outline" size="lg" className="h-11 rounded-xl px-4" disabled>
-                <Clock3 aria-hidden="true" />
-                Заявка отправлена
-            </Button>
+            <div className="relative w-full sm:w-auto">
+                <ProfileFriendshipActionConfirmationDialog
+                    triggerButtonRef={primaryFriendshipActionButtonRef}
+                    triggerLabel="Заявка отправлена"
+                    pendingLabel="Отменяем..."
+                    triggerIcon={<Clock3 aria-hidden="true" />}
+                    confirmationIcon={<X aria-hidden="true" />}
+                    triggerVariant="outline"
+                    dialogTitle="Отменить заявку в друзья?"
+                    dialogDescription="Заявка исчезнет у получателя. При необходимости вы сможете отправить её снова."
+                    confirmationLabel="Отменить"
+                    isPending={isCancellingOutgoingFriendRequest}
+                    onConfirm={handleCancelOutgoingFriendRequest}
+                />
+
+                <ProfileFriendshipMutationErrorMessage
+                    errorMessage={errorMessage}
+                    isVisible={isErrorMessageVisible}
+                />
+            </div>
         );
     }
 
-    // Принятая заявка отображается как готовая дружба.
+    // Удаление принятой дружбы также требует отдельного подтверждения.
     if (currentUserFriendshipState === CurrentUserFriendshipState.FRIENDS) {
+        const isRemovingFriendship = pendingFriendshipMutation === "remove";
+
         return (
-            <Button type="button" variant="secondary" size="lg" className="h-11 rounded-xl px-4" disabled>
-                <UserCheck aria-hidden="true" />
-                Вы друзья
-            </Button>
+            <div className="relative w-full sm:w-auto">
+                <ProfileFriendshipActionConfirmationDialog
+                    triggerButtonRef={primaryFriendshipActionButtonRef}
+                    triggerLabel="Вы друзья"
+                    pendingLabel="Удаляем..."
+                    triggerIcon={<UserCheck aria-hidden="true" />}
+                    confirmationIcon={<UserMinus aria-hidden="true" />}
+                    triggerVariant="secondary"
+                    dialogTitle="Удалить пользователя из друзей?"
+                    dialogDescription="Принятая дружба будет удалена. Позже вы сможете снова отправить этому пользователю заявку."
+                    confirmationLabel="Удалить"
+                    isPending={isRemovingFriendship}
+                    onConfirm={handleRemoveFriendship}
+                />
+
+                <ProfileFriendshipMutationErrorMessage
+                    errorMessage={errorMessage}
+                    isVisible={isErrorMessageVisible}
+                />
+            </div>
         );
     }
 
@@ -225,6 +304,7 @@ export function ProfileFriendshipControls({
     return (
         <div className="relative w-full sm:w-auto">
             <Button
+                ref={primaryFriendshipActionButtonRef}
                 type="button"
                 size="lg"
                 className="h-11 w-full rounded-xl px-4 sm:w-auto"
