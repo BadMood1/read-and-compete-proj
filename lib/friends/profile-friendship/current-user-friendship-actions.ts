@@ -1,14 +1,16 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { Prisma } from "@/app/generated/prisma/client";
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
-import { createFriendshipPairKey } from "@/lib/friends/create-friendship-pair-key";
+import { createFriendshipPairKey } from "@/lib/friends/profile-friendship/create-friendship-pair-key";
 import {
     CurrentUserFriendshipState,
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
-} from "@/lib/friends/current-user-friendship-state";
-import { getFriendshipStateForProfileViewer } from "@/lib/friends/current-user-friendship-queries";
+} from "@/lib/friends/profile-friendship/current-user-friendship-state";
+import { getFriendshipStateForProfileViewer } from "@/lib/friends/profile-friendship/current-user-friendship-queries";
 import prisma from "@/lib/prisma";
 import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
 
@@ -19,7 +21,7 @@ const SEND_FRIEND_REQUEST_MAX_ATTEMPTS = 3;
 // --- ОБЩИЕ ТИПЫ РЕЗУЛЬТАТОВ ---
 
 // Все операции возвращают компоненту одно и то же понятное состояние дружбы.
-type CurrentUserFriendshipMutationResult =
+export type CurrentUserFriendshipMutationResult =
     | {
           success: true;
           currentUserFriendshipState: CurrentUserFriendshipStateValue;
@@ -92,10 +94,11 @@ async function getValidatedFriendshipMutationParticipants(
     };
 }
 
-// Любое изменение отношений влияет на состояние кнопок в обоих профилях.
-function revalidateFriendshipProfilePages(firstUserId: string, secondUserId: string) {
+// Любое изменение отношений влияет на оба профиля и списки на странице друзей.
+function revalidateFriendshipViews(firstUserId: string, secondUserId: string) {
     revalidateUserProfilePage(firstUserId);
     revalidateUserProfilePage(secondUserId);
+    revalidatePath("/friends");
 }
 
 // По pairKey всегда находится не более одной заявки в любом направлении.
@@ -227,7 +230,7 @@ export async function sendCurrentUserFriendRequest(
                 continue; // другой запрос успел изменить запись, поэтому повторяем чтение
             }
 
-            revalidateFriendshipProfilePages(currentUserId, normalizedReceiverUserId);
+            revalidateFriendshipViews(currentUserId, normalizedReceiverUserId);
 
             return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedReceiverUserId);
         }
@@ -263,7 +266,7 @@ export async function sendCurrentUserFriendRequest(
             throw error;
         }
 
-        revalidateFriendshipProfilePages(currentUserId, normalizedReceiverUserId);
+        revalidateFriendshipViews(currentUserId, normalizedReceiverUserId);
 
         return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedReceiverUserId);
     }
@@ -288,7 +291,7 @@ export async function sendCurrentUserFriendRequest(
 export async function acceptCurrentUserFriendRequest(
     senderUserId: string,
 ): Promise<CurrentUserFriendshipMutationResult> {
-    // senderUserId приходит из профиля, а ID получателя берётся из текущей сессии.
+    // senderUserId приходит из карточки или профиля, а ID получателя — из текущей сессии.
     const participants = await getValidatedFriendshipMutationParticipants(senderUserId);
 
     if (!participants.success) {
@@ -349,7 +352,7 @@ export async function acceptCurrentUserFriendRequest(
     }
 
     // count > 0: заявка только что стала ACCEPTED, поэтому обновляем оба профиля.
-    revalidateFriendshipProfilePages(currentUserId, normalizedSenderUserId);
+    revalidateFriendshipViews(currentUserId, normalizedSenderUserId);
 
     return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedSenderUserId);
 }
@@ -358,7 +361,7 @@ export async function acceptCurrentUserFriendRequest(
 export async function rejectCurrentUserFriendRequest(
     senderUserId: string,
 ): Promise<CurrentUserFriendshipMutationResult> {
-    // senderUserId приходит из профиля, а ID получателя берётся из текущей сессии.
+    // senderUserId приходит из карточки или профиля, а ID получателя — из текущей сессии.
     const participants = await getValidatedFriendshipMutationParticipants(senderUserId);
 
     if (!participants.success) {
@@ -418,7 +421,7 @@ export async function rejectCurrentUserFriendRequest(
     }
 
     // count > 0: заявка только что стала REJECTED, поэтому обновляем оба профиля.
-    revalidateFriendshipProfilePages(currentUserId, normalizedSenderUserId);
+    revalidateFriendshipViews(currentUserId, normalizedSenderUserId);
 
     return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedSenderUserId);
 }
@@ -458,7 +461,7 @@ export async function cancelCurrentUserOutgoingFriendRequest(
     }
 
     // Заявка удалена, поэтому оба профиля должны заново получить состояние отношений.
-    revalidateFriendshipProfilePages(currentUserId, normalizedReceiverUserId);
+    revalidateFriendshipViews(currentUserId, normalizedReceiverUserId);
 
     // Обычно получим NOT_FRIENDS. Повторное чтение также учитывает редкую встречную заявку.
     return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedReceiverUserId);
@@ -499,7 +502,7 @@ export async function removeCurrentUserFriendship(
     }
 
     // Принятая связь удалена — оба профиля должны заново получить состояние отношений.
-    revalidateFriendshipProfilePages(currentUserId, normalizedOtherUserId);
+    revalidateFriendshipViews(currentUserId, normalizedOtherUserId);
 
     // Обычно получим NOT_FRIENDS, но запрос не потеряет возможную активную заявку.
     return getSuccessfulResultWithCurrentFriendshipState(currentUserId, normalizedOtherUserId);

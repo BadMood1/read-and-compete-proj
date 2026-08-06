@@ -62,7 +62,7 @@ function AppLayoutLoading() {
                     {/* На мобильном ссылки выглядят как иконки, а на desktop включают текст. */}
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
-                            {Array.from({ length: 3 }).map((_, index) => (
+                            {Array.from({ length: 4 }).map((_, index) => (
                                 <span key={index} className="h-9 w-9 rounded-lg bg-muted md:w-24" />
                             ))}
                         </div>

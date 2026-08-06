@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { ProfileHeader, ProfileRecentFinishedBooks, ProfileStatistics } from "@/components/profile";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
-import { getCurrentUserFriendshipStateWithProfileUser } from "@/lib/friends/current-user-friendship-queries";
+import { getCurrentUserFriendshipStateWithProfileUser } from "@/lib/friends/profile-friendship/current-user-friendship-queries";
 import { createProfilePath, getValidatedProfileReturnPath } from "@/lib/profile/profile-navigation";
 import { getUserProfileById } from "@/lib/profile/profile-user-query";
 

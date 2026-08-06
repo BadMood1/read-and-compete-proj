@@ -2,11 +2,11 @@ import "server-only";
 
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
-import { createFriendshipPairKey } from "@/lib/friends/create-friendship-pair-key";
+import { createFriendshipPairKey } from "@/lib/friends/profile-friendship/create-friendship-pair-key";
 import {
     CurrentUserFriendshipState,
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
-} from "@/lib/friends/current-user-friendship-state";
+} from "@/lib/friends/profile-friendship/current-user-friendship-state";
 import prisma from "@/lib/prisma";
 
 // --- ОПРЕДЕЛЕНИЕ СОСТОЯНИЯ ДЛЯ ДВУХ ИЗВЕСТНЫХ ПОЛЬЗОВАТЕЛЕЙ ---

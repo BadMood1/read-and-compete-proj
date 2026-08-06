@@ -32,6 +32,7 @@ export function Navbar({ user }: { user: NavbarUser }) {
       <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
+          aria-label="На главную"
           className="group flex shrink-0 items-center gap-2.5 font-semibold tracking-tight"
         >
           <span className="flex size-9 items-center justify-center rounded-xl bg-secondary transition-transform group-hover:-rotate-3">

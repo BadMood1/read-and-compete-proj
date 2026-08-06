@@ -53,9 +53,7 @@ async function createTestUserSession() {
     try {
         await client.query("BEGIN");
 
-        const userResult = await client.query("SELECT name FROM users WHERE id = $1", [
-            TEST_USER_ID,
-        ]);
+        const userResult = await client.query("SELECT name FROM users WHERE id = $1", [TEST_USER_ID]);
 
         if (userResult.rowCount === 0) {
             throw new Error("Тестовый пользователь не найден. Сначала запустите npm run seed:test-reviews.");
@@ -65,9 +63,7 @@ async function createTestUserSession() {
         await client.query("DELETE FROM sessions WHERE user_id = $1", [TEST_USER_ID]);
 
         const sessionToken = randomUUID();
-        const expiresAt = new Date(
-            Date.now() + TEST_SESSION_LIFETIME_IN_HOURS * 60 * 60 * 1000,
-        );
+        const expiresAt = new Date(Date.now() + TEST_SESSION_LIFETIME_IN_HOURS * 60 * 60 * 1000);
 
         await client.query(
             `INSERT INTO sessions (id, session_token, user_id, expires)

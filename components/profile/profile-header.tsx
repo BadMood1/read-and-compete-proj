@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/users/user-avatar";
 import {
     CurrentUserFriendshipState,
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
-} from "@/lib/friends/current-user-friendship-state";
+} from "@/lib/friends/profile-friendship/current-user-friendship-state";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type ProfileHeaderProps = {

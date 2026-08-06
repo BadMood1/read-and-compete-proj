@@ -12,11 +12,11 @@ import {
     rejectCurrentUserFriendRequest,
     removeCurrentUserFriendship,
     sendCurrentUserFriendRequest,
-} from "@/lib/friends/current-user-friendship-actions";
+} from "@/lib/friends/profile-friendship/current-user-friendship-actions";
 import {
     CurrentUserFriendshipState,
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
-} from "@/lib/friends/current-user-friendship-state";
+} from "@/lib/friends/profile-friendship/current-user-friendship-state";
 import { cn } from "@/lib/utils";
 
 type ProfileFriendshipControlsProps = {
