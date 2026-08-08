@@ -154,8 +154,14 @@ model FriendRequest {
   receiverId String              @map("receiver_id")
   pairKey    String              @unique @map("pair_key")
   status     FriendRequestStatus @default(PENDING)
-  createdAt  DateTime            @default(now()) @map("created_at")
-  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  // Каждый участник независимо решает, может ли второй видеть его библиотеку.
+  // Эти настройки учитываются только после принятия заявки в друзья.
+  senderLibraryVisibleToReceiver Boolean @default(true) @map("sender_library_visible_to_receiver")
+  receiverLibraryVisibleToSender Boolean @default(true) @map("receiver_library_visible_to_sender")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Именованные relation позволяют Prisma отличить отправителя от получателя.
   sender   User @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)

@@ -9,6 +9,8 @@ export type CurrentUserFriendSummary = {
     id: string;
     name: string | null;
     image: string | null;
+    // Настройка принадлежит текущему пользователю и управляет доступом друга к его библиотеке.
+    isCurrentUserLibraryVisibleToFriend: boolean;
 };
 
 // Возвращает принятых друзей вошедшего пользователя — независимо от того,
@@ -62,6 +64,10 @@ export async function getCurrentUserFriends(
             updatedAt: "desc",
         },
         select: {
+            senderId: true,
+            receiverId: true,
+            senderLibraryVisibleToReceiver: true,
+            receiverLibraryVisibleToSender: true,
             sender: {
                 // Email и OAuth-данные не нужны карточке и не выходят из слоя запросов.
                 select: {
@@ -81,7 +87,18 @@ export async function getCurrentUserFriends(
     });
 
     // FriendRequest хранит обоих участников, а UI нужен только тот, кто не является нами.
-    return acceptedFriendships.map((friendship) =>
-        friendship.sender.id === currentUserId ? friendship.receiver : friendship.sender,
-    );
+    return acceptedFriendships.map((friendship) => {
+        const isCurrentUserSender = friendship.senderId === currentUserId;
+        const friend = isCurrentUserSender ? friendship.receiver : friendship.sender;
+
+        // Каждый участник управляет только видимостью собственной библиотеки.
+        const isCurrentUserLibraryVisibleToFriend = isCurrentUserSender
+            ? friendship.senderLibraryVisibleToReceiver
+            : friendship.receiverLibraryVisibleToSender;
+
+        return {
+            ...friend,
+            isCurrentUserLibraryVisibleToFriend,
+        };
+    });
 }
