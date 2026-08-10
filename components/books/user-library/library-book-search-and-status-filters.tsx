@@ -10,22 +10,27 @@ import { READING_STATUS_LABELS, READING_STATUS_ORDER } from "@/lib/books/reading
 import { createLibrarySearchAndStatusPath } from "@/lib/books/user-library-navigation";
 import { cn } from "@/lib/utils";
 
-type FiltersProps = {
+type LibraryBookSearchAndStatusFiltersProps = {
+    libraryPagePath: string;
     searchQuery: string;
     selectedReadingStatus: ReadingStatus | null;
 };
 
-export function LibraryBookSearchAndStatusFilters({ searchQuery, selectedReadingStatus }: FiltersProps) {
+export function LibraryBookSearchAndStatusFilters({
+    libraryPagePath,
+    searchQuery,
+    selectedReadingStatus,
+}: LibraryBookSearchAndStatusFiltersProps) {
     return (
         <div className="space-y-4">
-            {/* Строковый action превращает форму в GET-переход на /library?q=... */}
-            <Form action="/library" role="search" className="mt-4 flex flex-col gap-3 sm:flex-row">
+            {/* Строковый action превращает форму в GET-переход на путь текущей библиотеки. */}
+            <Form action={libraryPagePath} role="search" className="mt-4 flex flex-col gap-3 sm:flex-row">
                 {/* фиктивный input, чтобы поле status через name включилось в URL */}
                 {selectedReadingStatus ? (
                     <input type="hidden" name="status" value={selectedReadingStatus} />
                 ) : null}
                 <label htmlFor="library-book-query" className="sr-only">
-                    Найти книгу в своей библиотеке
+                    Найти книгу в библиотеке
                 </label>
 
                 <div className="relative flex-1">
@@ -51,7 +56,11 @@ export function LibraryBookSearchAndStatusFilters({ searchQuery, selectedReading
 
             <nav aria-label="Фильтр библиотеки по статусу чтения" className="flex flex-wrap gap-2">
                 <Link
-                    href={createLibrarySearchAndStatusPath(searchQuery, null)}
+                    href={createLibrarySearchAndStatusPath({
+                        libraryPagePath,
+                        searchQuery,
+                        readingStatus: null,
+                    })}
                     aria-current={selectedReadingStatus === null ? "page" : undefined}
                     className={cn(
                         "shrink-0 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors",
@@ -69,7 +78,11 @@ export function LibraryBookSearchAndStatusFilters({ searchQuery, selectedReading
                     return (
                         <Link
                             key={readingStatus}
-                            href={createLibrarySearchAndStatusPath(searchQuery, readingStatus)}
+                            href={createLibrarySearchAndStatusPath({
+                                libraryPagePath,
+                                searchQuery,
+                                readingStatus,
+                            })}
                             aria-current={isCurrentReadingStatus ? "page" : undefined}
                             className={cn(
                                 "shrink-0 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors",

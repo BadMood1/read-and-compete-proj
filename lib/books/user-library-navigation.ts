@@ -1,10 +1,17 @@
 import type { ReadingStatus } from "@/app/generated/prisma/enums";
 
+type CreateLibrarySearchAndStatusPathOptions = {
+    libraryPagePath: string;
+    searchQuery: string;
+    readingStatus: ReadingStatus | null;
+};
+
 // Собирает путь библиотеки, сохраняя непустой поиск и выбранный статус.
-export function createLibrarySearchAndStatusPath(
-    searchQuery: string,
-    readingStatus: ReadingStatus | null,
-): string {
+export function createLibrarySearchAndStatusPath({
+    libraryPagePath,
+    searchQuery,
+    readingStatus,
+}: CreateLibrarySearchAndStatusPathOptions): string {
     const searchParams = new URLSearchParams();
 
     if (searchQuery) {
@@ -17,5 +24,5 @@ export function createLibrarySearchAndStatusPath(
 
     const queryString = searchParams.toString();
 
-    return queryString ? `/library?${queryString}` : "/library";
+    return queryString ? `${libraryPagePath}?${queryString}` : libraryPagePath;
 }

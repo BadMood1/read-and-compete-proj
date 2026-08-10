@@ -1,7 +1,8 @@
-import { UsersRound } from "lucide-react";
 import { Suspense } from "react";
 
 import { FriendsListContentSkeleton } from "@/components/friends/friends-list/friends-list-content-skeleton";
+import { FriendsListLibraryAccessSettingsProvider } from "@/components/friends/friends-list/friends-list-library-access-settings-context";
+import { FriendsListSectionHeader } from "@/components/friends/friends-list/friends-list-section-header";
 import { FriendsListUserCard } from "@/components/friends/friends-list/friends-list-user-card";
 import { getCurrentUserFriends } from "@/lib/friends/friends-page/current-user-friends-queries";
 
@@ -68,28 +69,17 @@ async function FriendsListSearchResults({ searchQueryPromise }: FriendsListSecti
 // Внешняя секция остаётся синхронной частью каркаса страницы.
 export function FriendsListSection({ searchQueryPromise }: FriendsListSectionProps) {
     return (
-        <section
-            aria-labelledby="friends-list-heading"
-            className="flex h-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
-        >
-            <div className="flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary">
-                    <UsersRound className="size-5 text-primary" aria-hidden="true" />
-                </span>
+        <FriendsListLibraryAccessSettingsProvider>
+            <section
+                aria-labelledby="friends-list-heading"
+                className="flex h-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
+            >
+                <FriendsListSectionHeader />
 
-                <div>
-                    <h2 id="friends-list-heading" className="text-lg font-semibold tracking-tight">
-                        Ваши друзья
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Здесь собраны читатели, с которыми вы уже подружились.
-                    </p>
-                </div>
-            </div>
-
-            <Suspense fallback={<FriendsListContentSkeleton />}>
-                <FriendsListSearchResults searchQueryPromise={searchQueryPromise} />
-            </Suspense>
-        </section>
+                <Suspense fallback={<FriendsListContentSkeleton />}>
+                    <FriendsListSearchResults searchQueryPromise={searchQueryPromise} />
+                </Suspense>
+            </section>
+        </FriendsListLibraryAccessSettingsProvider>
     );
 }

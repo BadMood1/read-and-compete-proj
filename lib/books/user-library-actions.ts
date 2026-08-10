@@ -4,8 +4,9 @@ import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/g
 import { auth } from "@/auth";
 import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
 import { getGoogleBookById } from "@/lib/books/google-books-api";
+import { createUserLibraryCacheTag } from "@/lib/books/user-library-cache";
 import prisma from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 // Возможные ответы интерфейсу после добавления или удаления книги.
 export type BookLibraryMutationResult =
@@ -38,6 +39,9 @@ function isReadingStatus(value: string): value is ReadingStatusValue {
 
 // Изменение личной библиотеки влияет на неё саму, страницу книги и статистику профиля.
 function revalidatePagesAfterCurrentUserLibraryChange(googleBooksId: string, userId: string) {
+    // Немедленно истекает общий кэш данных: свежий список увидят и владелец, и его друзья.
+    updateTag(createUserLibraryCacheTag(userId));
+
     revalidateBookDetailsAndUserProfilePages(googleBooksId, userId);
     revalidatePath("/library");
 }

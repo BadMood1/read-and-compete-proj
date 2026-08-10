@@ -4,7 +4,11 @@ import {
 } from "@/components/books/user-library";
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
-import { READING_STATUS_ORDER } from "@/lib/books/reading-status-labels";
+import {
+    filterLibraryBooksBySearchAndReadingStatus,
+    getLibraryPageFilters,
+    type LibraryPageSearchParameters,
+} from "@/lib/books/library-page-filtering";
 import { createLibrarySearchAndStatusPath } from "@/lib/books/user-library-navigation";
 import { getLibraryBooksForUser } from "@/lib/books/user-library-queries";
 import { LibraryBig, SearchX } from "lucide-react";
@@ -12,11 +16,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 type LibraryPageProps = {
-    searchParams: Promise<{
-        q?: string | string[];
-        status?: string | string[];
-    }>;
+    searchParams: Promise<LibraryPageSearchParameters>;
 };
+
+const CURRENT_USER_LIBRARY_PAGE_PATH = "/library";
 
 // Серверная страница получает личную библиотеку пользователя прямо из БД.
 export default async function LibraryPage({ searchParams }: LibraryPageProps) {
@@ -32,46 +35,18 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
         searchParams,
     ]);
 
-    // searchQuery
-
-    const rawSearchQuery = Array.isArray(resolvedSearchParams.q) // если в запросе ?q=qwe&q=1232 (чисто защита)
-        ? resolvedSearchParams.q[0]
-        : resolvedSearchParams.q;
-
-    const searchQuery = rawSearchQuery?.trim() || "";
-    const normalizedSearchQuery = searchQuery.toLowerCase();
-
-    // Status
-
-    const rawSelectedReadingStatus = Array.isArray(resolvedSearchParams.status)
-        ? resolvedSearchParams.status[0]
-        : resolvedSearchParams.status;
-
-    const selectedReadingStatus =
-        READING_STATUS_ORDER.find((readingStatus) => readingStatus === rawSelectedReadingStatus) ?? null;
-
-    // Фильтр с учетом поиска и статуса
-    const filteredLibraryBooks = libraryBooks.filter((userLibraryEntry) => {
-        const matchesSelectedReadingStatus =
-            selectedReadingStatus === null || userLibraryEntry.status === selectedReadingStatus;
-
-        const normalizedBookTitle = userLibraryEntry.book.title.toLowerCase(); // по названию
-
-        // some() вернёт true, если запрос содержится хотя бы в одном имени автора.
-        const doesAnyBookAuthorMatchSearchQuery = userLibraryEntry.book.authors.some(
-            (author) => author.toLowerCase().includes(normalizedSearchQuery), // по массиву авторов перебрали
-        );
-
-        const doesBookMatchSearchQuery =
-            normalizedSearchQuery === "" ||
-            normalizedBookTitle.includes(normalizedSearchQuery) ||
-            doesAnyBookAuthorMatchSearchQuery;
-
-        return matchesSelectedReadingStatus && doesBookMatchSearchQuery;
+    const { searchQuery, selectedReadingStatus } = getLibraryPageFilters(resolvedSearchParams);
+    const filteredLibraryBooks = filterLibraryBooksBySearchAndReadingStatus(libraryBooks, {
+        searchQuery,
+        selectedReadingStatus,
     });
 
     // Берём путь наш формируем, чтоб карточки использовали его как возвратный
-    const returnPath = createLibrarySearchAndStatusPath(searchQuery, selectedReadingStatus);
+    const returnPath = createLibrarySearchAndStatusPath({
+        libraryPagePath: CURRENT_USER_LIBRARY_PAGE_PATH,
+        searchQuery,
+        readingStatus: selectedReadingStatus,
+    });
 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
@@ -87,6 +62,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
 
             {/* Поиск и фильтры */}
             <LibraryBookSearchAndStatusFilters
+                libraryPagePath={CURRENT_USER_LIBRARY_PAGE_PATH}
                 searchQuery={searchQuery}
                 selectedReadingStatus={selectedReadingStatus}
             />
@@ -115,7 +91,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
                         Измените поисковый запрос, выберите другой статус или сбросьте фильтры.
                     </p>
                     <Button asChild variant="outline" size="lg" className="mt-5">
-                        <Link href="/library">Сбросить фильтры</Link>
+                        <Link href={CURRENT_USER_LIBRARY_PAGE_PATH}>Сбросить фильтры</Link>
                     </Button>
                 </div>
             ) : (
@@ -123,6 +99,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
                     {filteredLibraryBooks.map((userLibraryEntry) => (
                         <UserLibraryBookCard
                             key={userLibraryEntry.id}
+                            interactionMode="editable"
                             status={userLibraryEntry.status}
                             book={userLibraryEntry.book}
                             returnPath={returnPath}

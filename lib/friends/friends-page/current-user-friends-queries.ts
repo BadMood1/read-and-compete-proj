@@ -3,6 +3,12 @@ import "server-only";
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import prisma from "@/lib/prisma";
+import { getUserDisplayName } from "@/lib/users/user-display-name";
+
+// Collator сравнивает русские и латинские имена без учёта регистра.
+const friendDisplayNameCollator = new Intl.Collator("ru", {
+    sensitivity: "base",
+});
 
 // Публичные данные одного друга, которых достаточно будущей карточке списка.
 export type CurrentUserFriendSummary = {
@@ -59,10 +65,6 @@ export async function getCurrentUserFriends(
                       { receiverId: currentUserId },
                   ],
         },
-        // updatedAt меняется при принятии заявки, поэтому свежие дружбы идут первыми.
-        orderBy: {
-            updatedAt: "desc",
-        },
         select: {
             senderId: true,
             receiverId: true,
@@ -87,7 +89,7 @@ export async function getCurrentUserFriends(
     });
 
     // FriendRequest хранит обоих участников, а UI нужен только тот, кто не является нами.
-    return acceptedFriendships.map((friendship) => {
+    const friends = acceptedFriendships.map((friendship) => {
         const isCurrentUserSender = friendship.senderId === currentUserId;
         const friend = isCurrentUserSender ? friendship.receiver : friendship.sender;
 
@@ -100,5 +102,16 @@ export async function getCurrentUserFriends(
             ...friend,
             isCurrentUserLibraryVisibleToFriend,
         };
+    });
+
+    // Сортируем после определения второго участника: друг может быть sender или receiver.
+    // id оставляет порядок стабильным, если отображаемые имена совпадают.
+    return friends.sort((firstFriend, secondFriend) => {
+        const displayNameComparison = friendDisplayNameCollator.compare(
+            getUserDisplayName(firstFriend.name),
+            getUserDisplayName(secondFriend.name),
+        );
+
+        return displayNameComparison || firstFriend.id.localeCompare(secondFriend.id);
     });
 }

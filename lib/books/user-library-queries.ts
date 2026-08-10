@@ -1,7 +1,8 @@
 import "server-only";
 
 import prisma from "@/lib/prisma";
-import { cacheLife } from "next/cache";
+import { createUserLibraryCacheTag } from "@/lib/books/user-library-cache";
+import { cacheLife, cacheTag } from "next/cache";
 
 // Проверяем существует ли связь UserBook,
 // чтобы после перезагрузки показать правильное состояние кнопки.
@@ -27,6 +28,8 @@ export async function getLibraryBooksForUser(userId: string) {
     "use cache";
 
     cacheLife("minutes");
+    // Тег позволяет Server Actions обновлять библиотеку конкретного владельца.
+    cacheTag(createUserLibraryCacheTag(userId));
 
     return prisma.userBook.findMany({
         where: {

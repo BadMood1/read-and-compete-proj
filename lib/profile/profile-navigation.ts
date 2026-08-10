@@ -9,6 +9,11 @@ export function createProfilePath(userId: string) {
     return `/profile/${encodeURIComponent(userId.trim())}`;
 }
 
+// Собирает канонический путь библиотеки конкретного владельца профиля.
+export function createProfileLibraryPath(userId: string) {
+    return `${createProfilePath(userId)}/library`;
+}
+
 type CreateProfilePathWithReturnPathOptions = {
     userId: string;
     returnPath: string;

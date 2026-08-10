@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { ProfileHeader, ProfileRecentFinishedBooks, ProfileStatistics } from "@/components/profile";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { getCurrentUserFriendLibraryAccessState } from "@/lib/friends/library-access/current-user-friend-library-access-queries";
 import { getCurrentUserFriendshipStateWithProfileUser } from "@/lib/friends/profile-friendship/current-user-friendship-queries";
 import { createProfilePath, getValidatedProfileReturnPath } from "@/lib/profile/profile-navigation";
 import { getUserProfileById } from "@/lib/profile/profile-user-query";
@@ -27,10 +28,16 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
 
     // Данные профиля, сессия и состояние дружбы не зависят от результатов друг друга,
     // поэтому получаем их параллельно и не складываем время трёх запросов.
-    const [profileUser, session, currentUserFriendshipState] = await Promise.all([
+    const [
+        profileUser,
+        session,
+        currentUserFriendshipState,
+        currentUserFriendLibraryAccessState,
+    ] = await Promise.all([
         getUserProfileById(userId),
         currentSessionPromise,
         getCurrentUserFriendshipStateWithProfileUser(userId),
+        getCurrentUserFriendLibraryAccessState(userId),
     ]);
 
     const currentUserId = session?.user?.id;
@@ -44,8 +51,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         notFound();
     }
 
-    // null означает, что запрос не смог определить текущего пользователя.
-    if (currentUserFriendshipState === null) {
+    // null означает, что запросы не смогли определить текущего пользователя.
+    if (currentUserFriendshipState === null || currentUserFriendLibraryAccessState === null) {
         redirect("/login");
     }
 
@@ -64,6 +71,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
                     profileDisplayName={profileUser.name}
                     profileImageUrl={profileUser.image}
                     currentUserFriendshipState={currentUserFriendshipState}
+                    currentUserFriendLibraryAccessState={currentUserFriendLibraryAccessState}
                 />
 
                 <ProfileStatistics statistics={profileUser.statistics} />

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cacheLife } from "next/cache";
+
 type GoogleBooksResponse = {
     totalItems: number;
     items?: GoogleBookVolume[];
@@ -48,6 +50,7 @@ export type GoogleBookSearchResult = {
 
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 5000;
 const SEARCH_CACHE_SECONDS = 900;
 
 // Настройки определяют, нужно ли кэшировать конкретный запрос к Google Books.
@@ -84,7 +87,11 @@ async function fetchGoogleBooks(
         let response: Response;
 
         try {
-            response = await fetch(url, options);
+            // Новая попытка получает отдельный signal и не может зависнуть без ограничения.
+            response = await fetch(url, {
+                ...options,
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            });
         } catch (error) {
             // Последнюю сетевую ошибку передаём вызывающему коду.
             if (attempt === MAX_ATTEMPTS) {
@@ -183,6 +190,10 @@ export async function searchGoogleBooks(query: string): Promise<GoogleBookSearch
 export async function getGoogleBookById(
     googleBooksId: string,
 ): Promise<GoogleBookSearchResult | null> {
+    "use cache";
+
+    cacheLife("hours");
+
     const normalizedId = googleBooksId.trim();
 
     if (!normalizedId) {
@@ -194,6 +205,7 @@ export async function getGoogleBookById(
 
     url.searchParams.set("key", getGoogleBooksApiKey());
 
+    // Внешний запрос выполняется только при отсутствии готового результата в кэше функции.
     const response = await fetchGoogleBooks(url);
 
     if (response.status === 404) {

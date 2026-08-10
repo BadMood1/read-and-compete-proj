@@ -1,4 +1,3 @@
-import { getGoogleBookById } from "@/lib/books/google-books-api";
 import { notFound, redirect } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
@@ -10,6 +9,7 @@ import {
     createBookDetailsPath,
     getValidatedBookDetailsReturnPath,
 } from "@/lib/books/book-details-navigation";
+import { getBookDetailsByGoogleBooksId } from "@/lib/books/book-details-query";
 import { isGoogleBookInUserLibrary } from "@/lib/books/user-library-queries";
 import { CurrentUserBookReviewEditor } from "@/components/reviews/current-user-book-review-editor";
 import { getCurrentUserReviewForGoogleBook } from "@/lib/reviews/current-user-review-queries";
@@ -27,6 +27,26 @@ type BookPageProps = {
     }>;
 };
 
+// Подбирает подпись по разделу, из которого пользователь открыл книгу.
+function getBookDetailsBackLinkLabel(bookDetailsReturnPath: string) {
+    const returnPathname = bookDetailsReturnPath.split("?")[0];
+    const returnPathSegments = returnPathname.split("/").filter(Boolean);
+    const isProfileLibraryPath =
+        returnPathSegments.length === 3 &&
+        returnPathSegments[0] === "profile" &&
+        returnPathSegments[2] === "library";
+
+    if (returnPathname === "/library" || isProfileLibraryPath) {
+        return "Назад к библиотеке";
+    }
+
+    if (returnPathname === "/profile" || returnPathname.startsWith("/profile/")) {
+        return "Назад к профилю";
+    }
+
+    return "Назад к поиску";
+}
+
 export default async function BookPage({ params, searchParams }: BookPageProps) {
     // Сессия не зависит от параметров и Google Books, поэтому запускаем её заранее.
     const currentSessionPromise = getCurrentSession();
@@ -36,18 +56,15 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     // Определяем, куда вести ссылку «Назад» — в поиск или библиотеку.
     const bookDetailsReturnPath = getValidatedBookDetailsReturnPath(resolvedSearchParams.returnPath);
-    let backLinkLabel = "Назад к поиску";
+    const backLinkLabel = getBookDetailsBackLinkLabel(bookDetailsReturnPath);
 
-    if (bookDetailsReturnPath.startsWith("/library")) {
-        backLinkLabel = "Назад к библиотеке";
-    } else if (bookDetailsReturnPath.startsWith("/profile")) {
-        backLinkLabel = "Назад к профилю";
-    }
+    // Сохранённая книга берётся из нашей БД; Google нужен только для ещё неизвестного ID.
+    const [book, session] = await Promise.all([
+        getBookDetailsByGoogleBooksId(googleBooksId),
+        currentSessionPromise,
+    ]);
 
-    // Загружаем конкретную книгу по ID из адресной строки.
-    const [book, session] = await Promise.all([getGoogleBookById(googleBooksId), currentSessionPromise]);
-
-    // null означает, что Google не нашёл книгу с таким ID.
+    // null означает, что книги нет локально, а Google не нашёл её по переданному ID.
     if (!book) {
         notFound();
     }
@@ -60,17 +77,13 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     }
 
     // Все запросы используют уже известные ID, но друг от друга не зависят.
-    const [
-        isBookAlreadyInUserLibrary,
-        currentUserReview,
-        publicBookReviews,
-        bookRatingSummary,
-    ] = await Promise.all([
-        isGoogleBookInUserLibrary(currentUserId, book.googleBooksId),
-        getCurrentUserReviewForGoogleBook(currentUserId, book.googleBooksId),
-        getPublicReviewsForGoogleBook(book.googleBooksId, currentUserId),
-        getBookRatingSummary(book.googleBooksId),
-    ]);
+    const [isBookAlreadyInUserLibrary, currentUserReview, publicBookReviews, bookRatingSummary] =
+        await Promise.all([
+            isGoogleBookInUserLibrary(currentUserId, book.googleBooksId),
+            getCurrentUserReviewForGoogleBook(currentUserId, book.googleBooksId),
+            getPublicReviewsForGoogleBook(book.googleBooksId, currentUserId),
+            getBookRatingSummary(book.googleBooksId),
+        ]);
 
     const details = [
         book.publishedDate?.slice(0, 4),
@@ -87,10 +100,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     return (
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-8">
             {/* returnPath сохраняет источник перехода, но принимается только после проверки пути. */}
-            <PageBackNavigationLink
-                href={bookDetailsReturnPath}
-                label={backLinkLabel}
-            />
+            <PageBackNavigationLink href={bookDetailsReturnPath} label={backLinkLabel} />
 
             {/* На планшете описание занимает всю нижнюю строку, на desktop возвращается вправо. */}
             <article className="mt-6 grid gap-8 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8 md:grid-cols-[240px_minmax(0,1fr)] md:gap-x-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-x-12 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -176,10 +186,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
                 isBookInCurrentUserLibrary={isBookAlreadyInUserLibrary}
             />
             {/* Остальные рецензии пользователей */}
-            <PublicBookReviewList
-                reviews={publicBookReviews}
-                bookPagePath={currentBookPagePath}
-            />
+            <PublicBookReviewList reviews={publicBookReviews} bookPagePath={currentBookPagePath} />
         </main>
     );
 }

@@ -2,10 +2,16 @@ import type { ReadingStatus } from "@/app/generated/prisma/enums";
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { LibraryBookReadingStatusBadge } from "./library-book-reading-status-badge";
 import { LibraryBookReadingStatusDropdown } from "./library-book-reading-status-dropdown";
+import { RemoveBookFromCurrentUserLibraryCardButton } from "./remove-book-from-current-user-library-card-button";
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
+import { cn } from "@/lib/utils";
+
+type LibraryBookCardInteractionMode = "editable" | "read-only";
 
 type UserLibraryBookCardProps = {
+    interactionMode: LibraryBookCardInteractionMode;
     status: ReadingStatus;
     book: {
         googleBooksId: string;
@@ -19,7 +25,14 @@ type UserLibraryBookCardProps = {
 };
 
 // Показывает одну сохранённую книгу и ведёт на её полную страницу.
-export function UserLibraryBookCard({ status, book, returnPath }: UserLibraryBookCardProps) {
+export function UserLibraryBookCard({
+    interactionMode,
+    status,
+    book,
+    returnPath,
+}: UserLibraryBookCardProps) {
+    const isEditableLibraryCard = interactionMode === "editable";
+
     // Собираем только существующие характеристики, чтобы не выводить пустые разделители.
     const details = [
         book.publishedDate?.slice(0, 4),
@@ -35,6 +48,13 @@ export function UserLibraryBookCard({ status, book, returnPath }: UserLibraryBoo
 
     return (
         <article className="relative isolate grid min-h-48 grid-cols-[88px_1fr] gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:grid-cols-[104px_1fr] sm:gap-5">
+            {isEditableLibraryCard ? (
+                <RemoveBookFromCurrentUserLibraryCardButton
+                    googleBooksId={book.googleBooksId}
+                    bookTitle={book.title}
+                />
+            ) : null}
+
             <div className="relative aspect-2/3 overflow-hidden rounded-lg bg-secondary/70">
                 {book.coverUrl ? (
                     <Image
@@ -53,7 +73,12 @@ export function UserLibraryBookCard({ status, book, returnPath }: UserLibraryBoo
 
             {/* Информация начинается на уровне верхнего края обложки, а статус прижат к низу. */}
             <div className="flex min-w-0 flex-col">
-                <h2 className="text-lg font-semibold leading-snug">
+                <h2
+                    className={cn(
+                        "text-lg font-semibold leading-snug",
+                        isEditableLibraryCard && "pr-8",
+                    )}
+                >
                     <Link
                         href={bookDetailsPath}
                         aria-label={`Открыть книгу «${book.title}»`}
@@ -71,12 +96,16 @@ export function UserLibraryBookCard({ status, book, returnPath }: UserLibraryBoo
                     <p className="mt-2 text-xs text-muted-foreground">{details.join(" · ")}</p>
                 ) : null}
 
-                {/* Dropdown лежит выше растянутой ссылки, поэтому кнопка не оказывается внутри Link. */}
+                {/* В своей библиотеке статус редактируется, в чужой остаётся обычной подписью. */}
                 <div className="mt-auto pt-4">
-                    <LibraryBookReadingStatusDropdown
-                        googleBooksId={book.googleBooksId}
-                        readingStatus={status}
-                    />
+                    {isEditableLibraryCard ? (
+                        <LibraryBookReadingStatusDropdown
+                            googleBooksId={book.googleBooksId}
+                            readingStatus={status}
+                        />
+                    ) : (
+                        <LibraryBookReadingStatusBadge readingStatus={status} />
+                    )}
                 </div>
             </div>
         </article>

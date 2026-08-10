@@ -1,18 +1,10 @@
 "use client";
 
 import type { ReadingStatus } from "@/app/generated/prisma/enums";
-import {
-    BookOpen,
-    BookmarkPlus,
-    ChevronDown,
-    CircleCheck,
-    CircleX,
-    LoaderCircle,
-    Pause,
-    type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 
+import { LIBRARY_BOOK_READING_STATUS_PRESENTATION } from "@/components/books/user-library/library-book-reading-status-presentation";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -35,42 +27,6 @@ type LibraryBookReadingStatusDropdownProps = {
     readingStatus: ReadingStatus;
 };
 
-type ReadingStatusPresentation = {
-    icon: LucideIcon;
-    triggerClassName: string;
-    menuIconClassName: string;
-};
-
-// Все цвета и иконки статусов находятся рядом с компонентом, а не разбросаны по карточкам.
-const READING_STATUS_PRESENTATION: Record<ReadingStatus, ReadingStatusPresentation> = {
-    WANT_TO_READ: {
-        icon: BookmarkPlus,
-        triggerClassName: "border-secondary bg-secondary text-primary hover:bg-secondary/80",
-        menuIconClassName: "text-rose-400",
-    },
-    READING: {
-        icon: BookOpen,
-        triggerClassName: "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-        menuIconClassName: "text-primary",
-    },
-    FINISHED: {
-        icon: CircleCheck,
-        triggerClassName: "border-foreground bg-foreground text-background hover:bg-foreground/90",
-        menuIconClassName: "text-foreground",
-    },
-    PAUSED: {
-        icon: Pause,
-        triggerClassName:
-            "border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-        menuIconClassName: "text-amber-600 dark:text-amber-400",
-    },
-    DROPPED: {
-        icon: CircleX,
-        triggerClassName: "border-destructive/25 bg-destructive/10 text-destructive hover:bg-destructive/20",
-        menuIconClassName: "text-destructive",
-    },
-};
-
 // Даёт менять статус прямо в библиотеке, не открывая отдельную страницу книги.
 export function LibraryBookReadingStatusDropdown({
     googleBooksId,
@@ -82,8 +38,15 @@ export function LibraryBookReadingStatusDropdown({
     // Ошибка показывается рядом с кнопкой и сама исчезает через несколько секунд.
     const [errorMessage, setErrorMessage, isErrorMessageVisible] = useAutoDismissErrorMessage();
 
-    const currentStatusPresentation = READING_STATUS_PRESENTATION[currentReadingStatus];
+    const currentStatusPresentation =
+        LIBRARY_BOOK_READING_STATUS_PRESENTATION[currentReadingStatus];
     const CurrentStatusIcon = currentStatusPresentation.icon;
+    const currentStatusTriggerClassName = isSavingReadingStatus
+        ? "border-border bg-muted text-muted-foreground"
+        : cn(
+              currentStatusPresentation.badgeClassName,
+              currentStatusPresentation.interactiveClassName,
+          );
 
     async function handleReadingStatusChange(nextReadingStatus: string) {
         if (isSavingReadingStatus || nextReadingStatus === currentReadingStatus) {
@@ -122,9 +85,7 @@ export function LibraryBookReadingStatusDropdown({
                         className={cn(
                             "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-wait",
-                            isSavingReadingStatus
-                                ? "border-border bg-muted text-muted-foreground"
-                                : currentStatusPresentation.triggerClassName,
+                            currentStatusTriggerClassName,
                         )}
                     >
                         {isSavingReadingStatus ? (
@@ -156,7 +117,8 @@ export function LibraryBookReadingStatusDropdown({
                         className="flex flex-col gap-0.5"
                     >
                         {READING_STATUS_ORDER.map((status) => {
-                            const statusPresentation = READING_STATUS_PRESENTATION[status];
+                            const statusPresentation =
+                                LIBRARY_BOOK_READING_STATUS_PRESENTATION[status];
                             const StatusIcon = statusPresentation.icon;
 
                             return (
