@@ -111,6 +111,10 @@ model UserBook {
   isFavorite Boolean       @default(false) @map("is_favorite")
   startedAt  DateTime?     @map("started_at")
   finishedAt DateTime?     @map("finished_at")
+
+  // Сохраняет число прочитанных книг пользователя именно в момент завершения этой книги.
+  finishedBooksCountAtFinish Int? @map("finished_books_count_at_finish")
+
   createdAt  DateTime      @default(now()) @map("created_at")
   updatedAt  DateTime      @updatedAt @map("updated_at")
 

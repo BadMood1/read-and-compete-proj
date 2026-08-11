@@ -4,6 +4,7 @@ import {
     FriendsUserSearchSection,
     FriendsUserSearchSectionSkeleton,
 } from "@/components/friends/friends-user-search-section";
+import { RecentFriendActivitySection } from "@/components/friends/activity";
 import { FriendsListSection } from "@/components/friends/friends-list";
 import { IncomingFriendRequestsSection } from "@/components/friends/incoming-friend-requests";
 import { FriendsPageUserSearchResultsSection } from "@/components/friends/user-search-results";
@@ -37,9 +38,10 @@ export default function FriendsPage({ searchParams }: FriendsPageProps) {
                 <IncomingFriendRequestsSection searchQueryPromise={searchQueryPromise} />
             </div>
 
-            <FriendsPageUserSearchResultsSection
-                searchQueryPromise={searchQueryPromise}
-            />
+            {/* На обычной странице показываем ленту, а во время поиска освобождаем место результатам. */}
+            <RecentFriendActivitySection searchQueryPromise={searchQueryPromise} />
+
+            <FriendsPageUserSearchResultsSection searchQueryPromise={searchQueryPromise} />
         </main>
     );
 }

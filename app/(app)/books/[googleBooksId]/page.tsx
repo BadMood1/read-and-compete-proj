@@ -44,6 +44,10 @@ function getBookDetailsBackLinkLabel(bookDetailsReturnPath: string) {
         return "Назад к профилю";
     }
 
+    if (returnPathname === "/friends") {
+        return "Назад к друзьям";
+    }
+
     return "Назад к поиску";
 }
 

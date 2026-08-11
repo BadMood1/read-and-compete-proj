@@ -51,6 +51,7 @@ export function getValidatedBookDetailsReturnPath(
     const isAllowedPath =
         safeReturnPath.pathname === "/" ||
         safeReturnPath.pathname === "/library" ||
+        safeReturnPath.pathname === "/friends" ||
         isProfilePath;
 
     return isAllowedPath ? safeReturnPath.pathWithSearchParameters : "/";

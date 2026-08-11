@@ -20,6 +20,7 @@ type RecentFriendActivityBook = {
     title: string;
     authors: string[];
     coverUrl: string | null;
+    pageCount: number | null;
 };
 
 type RecentFriendActivityBase = {
@@ -34,10 +35,15 @@ type RecentFriendActivityBase = {
 export type CurrentUserRecentFriendActivityItem =
     | (RecentFriendActivityBase & {
           type: "FINISHED_BOOK";
+          finishedBooksCount: number;
       })
     | (RecentFriendActivityBase & {
           type: "RATED_BOOK";
           rating: number;
+          bookRatingSummary: {
+              averageRating: number;
+              ratingsCount: number;
+          };
       })
     | (RecentFriendActivityBase & {
           type: "REVIEWED_BOOK";
@@ -119,6 +125,9 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
                 finishedAt: {
                     not: null,
                 },
+                finishedBooksCountAtFinish: {
+                    not: null,
+                },
                 // владелец записи является другом и разрешает нам видеть библиотеку.
                 user: createLibraryVisibleFriendUserFilter(currentUserId),
             },
@@ -127,6 +136,7 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
             select: {
                 id: true,
                 finishedAt: true,
+                finishedBooksCountAtFinish: true,
                 user: {
                     select: {
                         id: true,
@@ -140,6 +150,7 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
                         title: true,
                         authors: true,
                         coverUrl: true,
+                        pageCount: true,
                     },
                 },
             },
@@ -153,6 +164,7 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
             take: RECENT_FRIEND_ACTIVITY_LIMIT,
             select: {
                 id: true,
+                bookId: true,
                 rating: true,
                 text: true,
                 updatedAt: true,
@@ -169,18 +181,61 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
                         title: true,
                         authors: true,
                         coverUrl: true,
+                        pageCount: true,
                     },
                 },
             },
         }),
     ]);
 
+    // Средние оценки нужны только карточкам события RATED_BOOK.
+    // Все найденные книги считаются одним groupBy, а не отдельным запросом для каждой карточки.
+    const recentlyRatedBookIds = [
+        ...new Set(
+            recentReviewEntries
+                .filter((reviewEntry) => reviewEntry.text === null)
+                .map((reviewEntry) => reviewEntry.bookId),
+        ),
+    ];
+
+    const recentBookRatingSummaryEntries =
+        recentlyRatedBookIds.length === 0
+            ? []
+            : await prisma.review.groupBy({
+                  by: ["bookId"],
+                  where: {
+                      bookId: {
+                          in: recentlyRatedBookIds,
+                      },
+                  },
+                  _avg: {
+                      rating: true,
+                  },
+                  _count: {
+                      _all: true,
+                  },
+              });
+
+    // Map позволяет быстро найти готовую сводку по локальному ID книги.
+    const bookRatingSummaryByBookId = new Map(
+        recentBookRatingSummaryEntries.map((ratingSummaryEntry) => [
+            ratingSummaryEntry.bookId,
+            {
+                averageRating: ratingSummaryEntry._avg.rating,
+                ratingsCount: ratingSummaryEntry._count._all,
+            },
+        ]),
+    );
+
     const finishedBookActivities: CurrentUserRecentFriendActivityItem[] = [];
 
     // преобразуем в события ленты
     for (const finishedBookEntry of recentFinishedBookEntries) {
-        // Prisma пока сохраняет nullable-тип, даже когда запрос исключил null.
-        if (!finishedBookEntry.finishedAt) {
+        // Prisma сохраняет nullable-типы, даже когда запрос уже исключил null.
+        if (
+            !finishedBookEntry.finishedAt ||
+            finishedBookEntry.finishedBooksCountAtFinish === null
+        ) {
             continue;
         }
 
@@ -190,6 +245,8 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
             occurredAt: finishedBookEntry.finishedAt,
             friend: finishedBookEntry.user,
             book: finishedBookEntry.book,
+            // Каждая карточка получает число, сохранённое именно в момент завершения книги.
+            finishedBooksCount: finishedBookEntry.finishedBooksCountAtFinish,
         });
     }
 
@@ -211,9 +268,16 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
             };
         }
 
+        const bookRatingSummary = bookRatingSummaryByBookId.get(reviewEntry.bookId);
+
         return {
             ...sharedActivityData,
             type: "RATED_BOOK", // только оценку поставил, text === null
+            bookRatingSummary: {
+                // В выбранной Review уже есть оценка, поэтому используем её как безопасный fallback.
+                averageRating: bookRatingSummary?.averageRating ?? reviewEntry.rating,
+                ratingsCount: bookRatingSummary?.ratingsCount ?? 1,
+            },
         };
     });
 

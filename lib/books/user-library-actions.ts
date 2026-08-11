@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/app/generated/prisma/client";
 import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
@@ -31,10 +32,39 @@ type UpdateCurrentUserBookReadingStatusResult =
       };
 
 const ALLOWED_READING_STATUSES = Object.values(ReadingStatus);
+const SERIALIZABLE_TRANSACTION_ATTEMPTS = 3;
 
 // TypeScript проверяет наш код, а эта функция защищает Server Action от произвольного POST-запроса.
 function isReadingStatus(value: string): value is ReadingStatusValue {
     return ALLOWED_READING_STATUSES.some((readingStatus) => readingStatus === value);
+}
+
+// Функция выполняет изменение статуса книги как одну безопасную транзакцию. Если две книги одновременно
+//  получают статус FINISHED и возникает конфликт счётчиков, она повторяет операцию до трёх раз,
+// чтобы сохранить правильные значения 6, затем 7, а не два раза 6.
+// (например, если оч. быстро отметим разные книги "Прочитано")
+async function runSerializableLibraryTransactionWithRetry<Result>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<Result>,
+): Promise<Result> {
+    for (let attempt = 1; attempt <= SERIALIZABLE_TRANSACTION_ATTEMPTS; attempt++) {
+        try {
+            return await prisma.$transaction(operation, {
+                isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            });
+        } catch (error) {
+            const shouldRetryTransaction =
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2034" &&
+                attempt < SERIALIZABLE_TRANSACTION_ATTEMPTS;
+
+            if (!shouldRetryTransaction) {
+                throw error;
+            }
+        }
+    }
+
+    // Цикл либо возвращает результат, либо выбрасывает последнюю ошибку.
+    throw new Error("Не удалось завершить транзакцию изменения библиотеки.");
 }
 
 // Изменение личной библиотеки влияет на неё саму, страницу книги и статистику профиля.
@@ -189,51 +219,88 @@ export async function updateCurrentUserBookReadingStatus(
     }
 
     // !-- ПРОВЕРКИ ---
+    const currentUserId = session.user.id;
 
-    //
-    const currentUserBook = await prisma.userBook.findFirst({
-        where: {
-            userId: session.user.id,
-            book: {
-                googleBooksId: normalizedBookId,
+    const currentUserBookExists = await runSerializableLibraryTransactionWithRetry(async (transaction) => {
+        // Читаем состояние внутри транзакции, чтобы снимок считался из тех же данных.
+        const currentUserBook = await transaction.userBook.findFirst({
+            where: {
+                userId: currentUserId,
+                book: {
+                    googleBooksId: normalizedBookId,
+                },
             },
-        },
-        select: {
-            id: true,
-            status: true,
-            finishedAt: true,
-        },
+            select: {
+                id: true,
+                status: true,
+                finishedAt: true,
+                finishedBooksCountAtFinish: true,
+            },
+        });
+
+        if (!currentUserBook) {
+            return false;
+        }
+
+        if (nextReadingStatus !== ReadingStatus.FINISHED) {
+            // После снятия FINISHED запись больше не представляет завершение книги.
+            await transaction.userBook.update({
+                where: {
+                    id: currentUserBook.id,
+                },
+                data: {
+                    status: nextReadingStatus,
+                    finishedAt: null,
+                    finishedBooksCountAtFinish: null,
+                },
+            });
+
+            return true;
+        }
+
+        const completeFinishedBookSnapshotAlreadyExists =
+            currentUserBook.status === ReadingStatus.FINISHED &&
+            currentUserBook.finishedAt !== null &&
+            currentUserBook.finishedBooksCountAtFinish !== null;
+
+        if (completeFinishedBookSnapshotAlreadyExists) {
+            // Повторный выбор FINISHED не меняет дату и исторический снимок.
+            return true;
+        }
+
+        const currentFinishedBooksCount = await transaction.userBook.count({
+            where: {
+                userId: currentUserId,
+                status: ReadingStatus.FINISHED,
+            },
+        });
+        const currentBookIsAlreadyIncludedInCount = currentUserBook.status === ReadingStatus.FINISHED;
+        const finishedBooksCountAtFinish =
+            currentFinishedBooksCount + (currentBookIsAlreadyIncludedInCount ? 0 : 1);
+        const finishedAt = currentBookIsAlreadyIncludedInCount
+            ? (currentUserBook.finishedAt ?? new Date())
+            : new Date();
+
+        // Снимок записывается одновременно со статусом и больше сам не пересчитывается.
+        await transaction.userBook.update({
+            where: {
+                id: currentUserBook.id,
+            },
+            data: {
+                status: ReadingStatus.FINISHED,
+                finishedAt,
+                finishedBooksCountAtFinish,
+            },
+        });
+
+        return true;
     });
 
-    if (!currentUserBook) {
+    if (!currentUserBookExists) {
         return { success: false, error: "Книга не найдена в вашей библиотеке." };
     }
 
-    let nextFinishedAt: Date | null;
-
-    if (nextReadingStatus !== ReadingStatus.FINISHED) {
-        // Книга больше не считается прочитанной — очищаем дату.
-        nextFinishedAt = null;
-    } else if (currentUserBook.status === ReadingStatus.FINISHED) {
-        // защита от повторного изменения с finished на finished
-        nextFinishedAt = currentUserBook.finishedAt ?? new Date();
-    } else {
-        // Пользователь только сейчас отметил книгу прочитанной.
-        nextFinishedAt = new Date();
-    }
-
-    // Добавляем в БД
-    await prisma.userBook.update({
-        where: {
-            id: currentUserBook.id,
-        },
-        data: {
-            status: nextReadingStatus,
-            finishedAt: nextFinishedAt,
-        },
-    });
-
-    revalidatePagesAfterCurrentUserLibraryChange(normalizedBookId, session.user.id);
+    revalidatePagesAfterCurrentUserLibraryChange(normalizedBookId, currentUserId);
 
     return { success: true, readingStatus: nextReadingStatus };
 }
