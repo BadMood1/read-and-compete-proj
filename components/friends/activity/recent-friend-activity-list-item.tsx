@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { UserAvatar } from "@/components/users/user-avatar";
 import { createBookDetailsPath } from "@/lib/books/book-details-navigation";
+import { formatBookCount } from "@/lib/books/book-count-formatting";
 import type { CurrentUserRecentFriendActivityItem } from "@/lib/friends/activity/current-user-recent-friend-activity-query";
 import { createProfilePath } from "@/lib/profile/profile-navigation";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
@@ -27,23 +28,6 @@ const averageRatingFormatter = new Intl.NumberFormat("ru-RU", {
 });
 
 const integerNumberFormatter = new Intl.NumberFormat("ru-RU");
-
-// Подбирает окончание для подписи: «1 книга», «2 книги», «5 книг».
-function formatFinishedBooksCount(finishedBooksCount: number) {
-    const lastTwoDigits = finishedBooksCount % 100;
-    const lastDigit = finishedBooksCount % 10;
-    let bookWord = "книг";
-
-    if (lastTwoDigits < 11 || lastTwoDigits > 14) {
-        if (lastDigit === 1) {
-            bookWord = "книга";
-        } else if (lastDigit >= 2 && lastDigit <= 4) {
-            bookWord = "книги";
-        }
-    }
-
-    return `${integerNumberFormatter.format(finishedBooksCount)} ${bookWord}`;
-}
 
 // Возвращает подпись и иконку конкретного вида события.
 // Нейтральные формулировки не требуют угадывать пол пользователя по имени.
@@ -79,7 +63,7 @@ function getRecentFriendActivityDetailsText(activity: CurrentUserRecentFriendAct
 
             return [
                 pageCountText,
-                `На тот момент прочитано: ${formatFinishedBooksCount(activity.finishedBooksCount)}`,
+                `На тот момент прочитано: ${formatBookCount(activity.finishedBooksCount)}`,
             ].join("\n");
         }
         case "RATED_BOOK":
