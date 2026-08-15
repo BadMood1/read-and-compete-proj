@@ -1,6 +1,7 @@
 import { MessageSquareText } from "lucide-react";
 import Link from "next/link";
 
+import { PublicBookReviewReactionControls } from "@/components/reviews/public-book-review-reaction-controls";
 import { UserAvatar } from "@/components/users/user-avatar";
 import { createProfilePathWithReturnPath } from "@/lib/profile/profile-navigation";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
@@ -87,9 +88,18 @@ export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReview
 
                                         {/* Запись без текста остаётся компактной: автора и оценки уже достаточно. */}
                                         {review.text ? (
-                                            <p className="mt-4 wrap-break-word whitespace-pre-line text-sm leading-7">
-                                                {review.text}
-                                            </p>
+                                            <>
+                                                <p className="mt-3 wrap-break-word whitespace-pre-line text-sm leading-7">
+                                                    {review.text}
+                                                </p>
+
+                                                <PublicBookReviewReactionControls
+                                                    reviewId={review.id}
+                                                    initialLikesCount={review.likesCount}
+                                                    initialDislikesCount={review.dislikesCount}
+                                                    initialCurrentUserReaction={review.currentUserReaction}
+                                                />
+                                            </>
                                         ) : null}
                                     </div>
                                 </div>

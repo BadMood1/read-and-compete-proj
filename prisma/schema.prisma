@@ -22,6 +22,12 @@ enum FriendRequestStatus {
   REJECTED
 }
 
+// Взаимоисключающие реакции пользователя на публичную рецензию.
+enum ReviewReactionType {
+  LIKE
+  DISLIKE
+}
+
 // OAuth-профиль GitHub или Google, привязанный к пользователю.
 model Account {
   id                String  @id @default(cuid())
@@ -65,10 +71,11 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
 
-  accounts Account[]
-  sessions Session[]
-  library  UserBook[]
-  reviews  Review[]
+  accounts        Account[]
+  sessions        Session[]
+  library         UserBook[]
+  reviews         Review[]
+  reviewReactions ReviewReaction[]
 
   // Две отдельные связи нужны, потому что User участвует в заявке в разных ролях.
   sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
@@ -115,8 +122,8 @@ model UserBook {
   // Сохраняет число прочитанных книг пользователя именно в момент завершения этой книги.
   finishedBooksCountAtFinish Int? @map("finished_books_count_at_finish")
 
-  createdAt  DateTime      @default(now()) @map("created_at")
-  updatedAt  DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Библиотека удаляется вместе с пользователем, но не удаляет общую книгу.
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -144,11 +151,33 @@ model Review {
   // Не разрешаем удалить общую книгу, пока на неё существуют рецензии.
   book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
 
+  // Реакции удаляются автоматически вместе с самой рецензией.
+  reactions ReviewReaction[]
+
   // Пользователь может оставить только одну рецензию на конкретную книгу.
   @@unique([userId, bookId])
   // Ускоряет получение рецензий книги с сортировкой от новых к старым.
   @@index([bookId, createdAt])
   @@map("reviews")
+}
+
+// Лайк или дизлайк, поставленный пользователем публичной рецензии.
+model ReviewReaction {
+  id        String             @id @default(cuid())
+  userId    String             @map("user_id")
+  reviewId  String             @map("review_id")
+  type      ReviewReactionType
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  // Реакция удаляется вместе с пользователем или рецензией.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  // Одновременно хранится только одна реакция пользователя на конкретную рецензию.
+  @@unique([userId, reviewId])
+  // Ускоряет отдельный подсчёт лайков и дизлайков одной рецензии.
+  @@index([reviewId, type])
+  @@map("review_reactions")
 }
 
 // Заявка в друзья; после принятия эта же запись представляет дружбу пользователей.
