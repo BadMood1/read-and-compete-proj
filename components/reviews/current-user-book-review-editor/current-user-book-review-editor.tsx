@@ -12,6 +12,7 @@ import {
 
 type CurrentUserBookReviewEditorProps = {
     googleBooksId: string;
+    bookPagePath: string;
     initialReview: CurrentUserReviewData | null;
     isBookInCurrentUserLibrary: boolean;
 };
@@ -19,6 +20,7 @@ type CurrentUserBookReviewEditorProps = {
 // Сервер передаёт существующую рецензию через initialReview при первом открытии страницы.
 export function CurrentUserBookReviewEditor({
     googleBooksId,
+    bookPagePath,
     initialReview,
     isBookInCurrentUserLibrary,
 }: CurrentUserBookReviewEditorProps) {
@@ -83,6 +85,15 @@ export function CurrentUserBookReviewEditor({
         setIsEditingReview(true);
     }
 
+    // Сохраняем изменившийся счётчик в currentReview, чтобы он не сбросился после edit/cancel.
+    function handleReviewCommentsCountChange(updatedCommentsCount: number) {
+        setCurrentReview((existingReview) =>
+            existingReview
+                ? { ...existingReview, commentsCount: updatedCommentsCount }
+                : existingReview,
+        );
+    }
+
     return (
         <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
             <div className={isShowingSavedReview ? "flex items-center gap-3" : "flex items-start gap-3"}>
@@ -127,9 +138,11 @@ export function CurrentUserBookReviewEditor({
             {isReviewCreationLocked ? null : isShowingSavedReview ? (
                 <SavedCurrentUserReview
                     googleBooksId={googleBooksId}
+                    bookPagePath={bookPagePath}
                     review={currentReview}
                     onStartReviewEditing={handleStartReviewEditing}
                     onReviewDeleted={handleReviewDeleted}
+                    onCommentsCountChange={handleReviewCommentsCountChange}
                 />
             ) : (
                 <CurrentUserReviewForm

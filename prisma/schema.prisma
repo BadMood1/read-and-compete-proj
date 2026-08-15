@@ -76,6 +76,7 @@ model User {
   library         UserBook[]
   reviews         Review[]
   reviewReactions ReviewReaction[]
+  reviewComments  ReviewComment[]
 
   // Две отдельные связи нужны, потому что User участвует в заявке в разных ролях.
   sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
@@ -154,6 +155,9 @@ model Review {
   // Реакции удаляются автоматически вместе с самой рецензией.
   reactions ReviewReaction[]
 
+  // Комментарии удаляются автоматически вместе с самой рецензией.
+  comments ReviewComment[]
+
   // Пользователь может оставить только одну рецензию на конкретную книгу.
   @@unique([userId, bookId])
   // Ускоряет получение рецензий книги с сортировкой от новых к старым.
@@ -178,6 +182,23 @@ model ReviewReaction {
   // Ускоряет отдельный подсчёт лайков и дизлайков одной рецензии.
   @@index([reviewId, type])
   @@map("review_reactions")
+}
+
+// Комментарий пользователя под публичной текстовой рецензией.
+model ReviewComment {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  reviewId  String   @map("review_id")
+  text      String   @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Комментарий удаляется вместе с его автором или самой рецензией.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  // Ускоряет получение комментариев одной рецензии в порядке публикации.
+  @@index([reviewId, createdAt])
+  @@map("review_comments")
 }
 
 // Заявка в друзья; после принятия эта же запись представляет дружбу пользователей.

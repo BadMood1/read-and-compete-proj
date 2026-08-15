@@ -7,32 +7,42 @@ import {
 import { LoaderCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 
+import { ReviewCommentsSheet } from "@/components/reviews/comments/review-comments-sheet";
 import { Button } from "@/components/ui/button";
 import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
 import { setCurrentUserReviewReaction } from "@/lib/reviews/current-user-review-reaction-actions";
 import { cn } from "@/lib/utils";
 
-type PublicBookReviewReactionControlsProps = {
+type PublicBookReviewInteractionControlsProps = {
     reviewId: string;
     initialLikesCount: number;
     initialDislikesCount: number;
+    initialCommentsCount: number;
     initialCurrentUserReaction: ReviewReactionTypeValue | null;
+    bookPagePath: string;
 };
 
-// Управляет только реакцией текущего пользователя; список рецензий остаётся серверным.
-export function PublicBookReviewReactionControls({
+// Объединяет компактные действия под публичной рецензией.
+export function PublicBookReviewInteractionControls({
     reviewId,
     initialLikesCount,
     initialDislikesCount,
+    initialCommentsCount,
     initialCurrentUserReaction,
-}: PublicBookReviewReactionControlsProps) {
+    bookPagePath,
+}: PublicBookReviewInteractionControlsProps) {
+    // Начальные значения приходят из серверного запроса страницы книги.
+    // После клика компонент хранит подтверждённые сервером значения локально.
     const [likesCount, setLikesCount] = useState(initialLikesCount);
     const [dislikesCount, setDislikesCount] = useState(initialDislikesCount);
     const [currentUserReaction, setCurrentUserReaction] = useState(initialCurrentUserReaction);
+
+    // Общий флаг блокирует обе кнопки, а тип реакции определяет, на какой показать loader.
     const [isUpdatingReaction, setIsUpdatingReaction] = useState(false);
     const [pendingReactionType, setPendingReactionType] = useState<ReviewReactionTypeValue | null>(null);
     const [errorMessage, setErrorMessage, isErrorMessageVisible] = useAutoDismissErrorMessage();
 
+    // Одна функция обслуживает и лайк, и дизлайк: отличается только переданный тип реакции.
     async function handleReactionButtonClick(clickedReactionType: ReviewReactionTypeValue) {
         if (isUpdatingReaction) {
             return;
@@ -67,16 +77,19 @@ export function PublicBookReviewReactionControls({
 
     const isLikeSelected = currentUserReaction === ReviewReactionType.LIKE;
     const isDislikeSelected = currentUserReaction === ReviewReactionType.DISLIKE;
+
+    // Эти два флага не управляют запросом — они только выбирают кнопку для loader.
     const isLikeRequestPending = isUpdatingReaction && pendingReactionType === ReviewReactionType.LIKE;
     const isDislikeRequestPending = isUpdatingReaction && pendingReactionType === ReviewReactionType.DISLIKE;
 
     return (
-        <div className="mt-3 w-fit max-w-full">
+        <div className="mt-3 w-full max-w-full sm:w-fit">
+            {/* На телефоне действия делят строку на три колонки, начиная с sm занимают свою ширину. */}
             <div
                 role="group"
-                aria-label="Реакции на рецензию"
+                aria-label="Реакции и комментарии к рецензии"
                 aria-busy={isUpdatingReaction}
-                className="flex items-center gap-2"
+                className="grid w-full grid-cols-3 items-center gap-2 sm:flex sm:w-auto"
             >
                 <Button
                     type="button"
@@ -87,7 +100,7 @@ export function PublicBookReviewReactionControls({
                     disabled={isUpdatingReaction}
                     onClick={() => handleReactionButtonClick(ReviewReactionType.LIKE)}
                     className={cn(
-                        "min-w-16 rounded-full border px-3 tabular-nums disabled:opacity-70",
+                        "w-full min-w-0 rounded-full border px-2.5 tabular-nums disabled:opacity-70 sm:w-auto sm:min-w-16 sm:px-3",
                         isLikeSelected
                             ? "border-primary/25 bg-secondary text-primary hover:bg-secondary/80"
                             : "border-border bg-background text-muted-foreground hover:border-primary/25 hover:bg-secondary/55 hover:text-primary",
@@ -113,7 +126,7 @@ export function PublicBookReviewReactionControls({
                     disabled={isUpdatingReaction}
                     onClick={() => handleReactionButtonClick(ReviewReactionType.DISLIKE)}
                     className={cn(
-                        "min-w-16 rounded-full border px-3 tabular-nums disabled:opacity-70",
+                        "w-full min-w-0 rounded-full border px-2.5 tabular-nums disabled:opacity-70 sm:w-auto sm:min-w-16 sm:px-3",
                         isDislikeSelected
                             ? "border-destructive/25 bg-destructive/10 text-destructive hover:bg-destructive/20"
                             : "border-border bg-background text-muted-foreground hover:border-destructive/25 hover:bg-destructive/10 hover:text-destructive",
@@ -128,8 +141,15 @@ export function PublicBookReviewReactionControls({
                         {dislikesCount}
                     </span>
                 </Button>
+
+                <ReviewCommentsSheet
+                    reviewId={reviewId}
+                    initialCommentsCount={initialCommentsCount}
+                    bookPagePath={bookPagePath}
+                />
             </div>
 
+            {/* Хук сначала плавно скрывает сообщение, а затем удаляет его из разметки. */}
             {errorMessage ? (
                 <p
                     role="alert"

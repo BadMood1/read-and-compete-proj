@@ -1,7 +1,7 @@
 import { MessageSquareText } from "lucide-react";
 import Link from "next/link";
 
-import { PublicBookReviewReactionControls } from "@/components/reviews/public-book-review-reaction-controls";
+import { PublicBookReviewInteractionControls } from "@/components/reviews/public-book-review-interaction-controls";
 import { UserAvatar } from "@/components/users/user-avatar";
 import { createProfilePathWithReturnPath } from "@/lib/profile/profile-navigation";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
@@ -86,18 +86,23 @@ export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReview
                                             </span>
                                         </div>
 
-                                        {/* Запись без текста остаётся компактной: автора и оценки уже достаточно. */}
+                                        {/*
+                                          Реакции и комментарии доступны только у текстовой рецензии.
+                                          Этот клиентский блок загружается внутри серверного списка точечно.
+                                        */}
                                         {review.text ? (
                                             <>
                                                 <p className="mt-3 wrap-break-word whitespace-pre-line text-sm leading-7">
                                                     {review.text}
                                                 </p>
 
-                                                <PublicBookReviewReactionControls
+                                                <PublicBookReviewInteractionControls
                                                     reviewId={review.id}
                                                     initialLikesCount={review.likesCount}
                                                     initialDislikesCount={review.dislikesCount}
+                                                    initialCommentsCount={review.commentsCount}
                                                     initialCurrentUserReaction={review.currentUserReaction}
+                                                    bookPagePath={bookPagePath}
                                                 />
                                             </>
                                         ) : null}

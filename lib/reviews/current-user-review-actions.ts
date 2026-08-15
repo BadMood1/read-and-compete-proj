@@ -9,8 +9,10 @@ const MAX_REVIEW_RATING = 10;
 const MAX_REVIEW_TEXT_LENGTH = 5000;
 
 export type CurrentUserReviewData = {
+    id: string;
     rating: number;
     text: string | null;
+    commentsCount: number;
 };
 
 // Один тип ответа подходит и сохранению, и удалению рецензии.
@@ -64,7 +66,6 @@ export async function saveCurrentUserReview(
         },
         select: {
             id: true, // берём Book.id
-            // Нам нужно только наличие связей, поэтому считаем их без загрузки массивов.
             _count: {
                 select: {
                     readers: {
@@ -73,10 +74,19 @@ export async function saveCurrentUserReview(
                             userId: session.user.id,
                         },
                     },
-                    reviews: {
-                        // Сколько Review текущего пользователя уже существует у этой книги.
-                        where: {
-                            userId: session.user.id,
+                },
+            },
+            // Unique-ключ гарантирует максимум одну такую рецензию.
+            // Вместе с ней узнаём, появились ли под ней комментарии.
+            reviews: {
+                where: {
+                    userId: session.user.id,
+                },
+                take: 1,
+                select: {
+                    _count: {
+                        select: {
+                            comments: true,
                         },
                     },
                 },
@@ -91,7 +101,8 @@ export async function saveCurrentUserReview(
 
     // есть ли у пользователя наша книга в библиотеке
     const isBookInCurrentUserLibrary = book._count.readers > 0;
-    const doesCurrentUserAlreadyHaveReview = book._count.reviews > 0;
+    const currentUserReview = book.reviews[0];
+    const doesCurrentUserAlreadyHaveReview = currentUserReview !== undefined;
 
     // Новую рецензию разрешаем только для своей библиотеки.
     // Существующую можно редактировать даже после удаления UserBook.
@@ -99,6 +110,15 @@ export async function saveCurrentUserReview(
         return {
             success: false,
             error: "Сначала добавьте книгу в библиотеку.",
+        };
+    }
+
+    // Не оставляем скрытое обсуждение под оценкой без текста.
+    // Удаление рецензии целиком по-прежнему удалит комментарии каскадно.
+    if (!normalizedReviewText && currentUserReview && currentUserReview._count.comments > 0) {
+        return {
+            success: false,
+            error: "Под рецензией уже есть комментарии. Оставьте текст или удалите рецензию целиком.",
         };
     }
 
@@ -121,14 +141,29 @@ export async function saveCurrentUserReview(
             text: normalizedReviewText || null,
         },
         select: {
+            id: true,
             rating: true,
             text: true,
+            // После сохранения кнопка комментариев сразу получает актуальный счётчик.
+            _count: {
+                select: {
+                    comments: true,
+                },
+            },
         },
     });
 
     revalidateBookDetailsAndUserProfilePages(normalizedGoogleBooksId, session.user.id);
 
-    return { success: true, review: savedReview };
+    return {
+        success: true,
+        review: {
+            id: savedReview.id,
+            rating: savedReview.rating,
+            text: savedReview.text,
+            commentsCount: savedReview._count.comments,
+        },
+    };
 }
 
 // Удаляет только рецензию текущего пользователя.

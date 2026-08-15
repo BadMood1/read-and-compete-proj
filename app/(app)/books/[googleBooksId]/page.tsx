@@ -186,6 +186,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
             {/* Редактор вынесен отдельно, потому что позже получит своё клиентское состояние. */}
             <CurrentUserBookReviewEditor
                 googleBooksId={book.googleBooksId}
+                bookPagePath={currentBookPagePath}
                 initialReview={currentUserReview}
                 isBookInCurrentUserLibrary={isBookAlreadyInUserLibrary}
             />

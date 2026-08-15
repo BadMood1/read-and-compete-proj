@@ -15,6 +15,7 @@ export type PublicBookReviewData = {
     createdAt: Date;
     likesCount: number;
     dislikesCount: number;
+    commentsCount: number;
     currentUserReaction: ReviewReactionTypeValue | null;
     author: {
         id: string;
@@ -67,6 +68,12 @@ export async function getPublicReviewsForGoogleBook(
                 },
                 take: 1,
             },
+            // На странице нужен только счётчик у кнопки, а не тексты всех комментариев.
+            _count: {
+                select: {
+                    comments: true,
+                },
+            },
         },
         orderBy: {
             createdAt: "desc",
@@ -118,9 +125,9 @@ export async function getPublicReviewsForGoogleBook(
         reactionCountsByReviewId.set(reactionGroup.reviewId, reactionCounts);
     }
 
-    // Переименовываем Prisma-связь user в понятный UI объект author.
-    const reviewsWithAuthorsAndReactions = reviewRecords.map(
-        ({ user, reactions, ...review }): PublicBookReviewData => {
+    // Собираем удобный для UI объект: автор, реакции и количество комментариев.
+    const publicReviews = reviewRecords.map(
+        ({ user, reactions, _count, ...review }): PublicBookReviewData => {
             const reactionCounts = reactionCountsByReviewId.get(review.id);
 
             return {
@@ -128,14 +135,15 @@ export async function getPublicReviewsForGoogleBook(
                 author: user,
                 likesCount: reactionCounts?.likesCount ?? 0,
                 dislikesCount: reactionCounts?.dislikesCount ?? 0,
+                commentsCount: _count.comments,
                 currentUserReaction: reactions[0]?.type ?? null,
             };
         },
     );
 
     // Сначала показываем рецензии с текстом, а оставленные без текста оценки — после них.
-    const reviewsWithText = reviewsWithAuthorsAndReactions.filter((review) => review.text !== null);
-    const ratingOnlyReviews = reviewsWithAuthorsAndReactions.filter((review) => review.text === null);
+    const reviewsWithText = publicReviews.filter((review) => review.text !== null);
+    const ratingOnlyReviews = publicReviews.filter((review) => review.text === null);
 
     return [...reviewsWithText, ...ratingOnlyReviews];
 }
