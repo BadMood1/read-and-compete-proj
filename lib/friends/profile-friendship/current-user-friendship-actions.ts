@@ -11,6 +11,10 @@ import {
     type CurrentUserFriendshipState as CurrentUserFriendshipStateValue,
 } from "@/lib/friends/profile-friendship/current-user-friendship-state";
 import { getFriendshipStateForProfileViewer } from "@/lib/friends/profile-friendship/current-user-friendship-queries";
+import {
+    createFriendRequestAcceptedNotification,
+    createFriendRequestReceivedNotification,
+} from "@/lib/notifications/notification-creation";
 import prisma from "@/lib/prisma";
 import { revalidateUserProfilePage } from "@/lib/profile/profile-page-revalidation";
 
@@ -212,18 +216,31 @@ export async function sendCurrentUserFriendRequest(
         if (existingFriendRequest?.status === FriendRequestStatus.REJECTED) {
             // Обновляем только всё ещё REJECTED-запись. Если другой send был первым,
             // count === 0 заставит нас перечитать его направление, а не перезатереть его.
-            const updateResult = await prisma.friendRequest.updateMany({
-                where: {
-                    pairKey: friendshipPairKey,
-                    status: FriendRequestStatus.REJECTED,
-                },
-                data: {
-                    senderId: currentUserId,
-                    receiverId: normalizedReceiverUserId,
-                    pairKey: friendshipPairKey,
-                    status: FriendRequestStatus.PENDING,
-                    createdAt: new Date(),
-                },
+            const updateResult = await prisma.$transaction(async (transaction) => {
+                const result = await transaction.friendRequest.updateMany({
+                    where: {
+                        pairKey: friendshipPairKey,
+                        status: FriendRequestStatus.REJECTED,
+                    },
+                    data: {
+                        senderId: currentUserId,
+                        receiverId: normalizedReceiverUserId,
+                        pairKey: friendshipPairKey,
+                        status: FriendRequestStatus.PENDING,
+                        createdAt: new Date(),
+                    },
+                });
+
+                // Уведомляем только победивший запрос, который реально вернул заявку в PENDING.
+                if (result.count > 0) {
+                    await createFriendRequestReceivedNotification({
+                        transaction,
+                        recipientUserId: normalizedReceiverUserId,
+                        actorUserId: currentUserId,
+                    });
+                }
+
+                return result;
             });
 
             if (updateResult.count === 0) {
@@ -251,12 +268,21 @@ export async function sendCurrentUserFriendRequest(
         try {
             // create, а не read-then-upsert, позволяет различить победившее направление.
             // Уникальный pairKey не даст двум встречным create образовать две записи.
-            await prisma.friendRequest.create({
-                data: {
-                    senderId: currentUserId,
-                    receiverId: normalizedReceiverUserId,
-                    pairKey: friendshipPairKey,
-                },
+            await prisma.$transaction(async (transaction) => {
+                await transaction.friendRequest.create({
+                    data: {
+                        senderId: currentUserId,
+                        receiverId: normalizedReceiverUserId,
+                        pairKey: friendshipPairKey,
+                    },
+                });
+
+                // Заявка и уведомление сохраняются вместе либо вместе откатываются.
+                await createFriendRequestReceivedNotification({
+                    transaction,
+                    recipientUserId: normalizedReceiverUserId,
+                    actorUserId: currentUserId,
+                });
             });
         } catch (error) {
             if (isPrismaUniqueConstraintError(error)) {
@@ -303,16 +329,29 @@ export async function acceptCurrentUserFriendRequest(
 
     // receiverId из сессии не позволяет принять заявку, адресованную другому пользователю.
     // pairKey однозначно выбирает пару, а updateMany атомарно проверяет направление и PENDING.
-    const updateResult = await prisma.friendRequest.updateMany({
-        where: {
-            pairKey: friendshipPairKey,
-            senderId: normalizedSenderUserId,
-            receiverId: currentUserId,
-            status: FriendRequestStatus.PENDING,
-        },
-        data: {
-            status: FriendRequestStatus.ACCEPTED,
-        },
+    const updateResult = await prisma.$transaction(async (transaction) => {
+        const result = await transaction.friendRequest.updateMany({
+            where: {
+                pairKey: friendshipPairKey,
+                senderId: normalizedSenderUserId,
+                receiverId: currentUserId,
+                status: FriendRequestStatus.PENDING,
+            },
+            data: {
+                status: FriendRequestStatus.ACCEPTED,
+            },
+        });
+
+        // Только фактический переход в ACCEPTED уведомляет первоначального отправителя.
+        if (result.count > 0) {
+            await createFriendRequestAcceptedNotification({
+                transaction,
+                recipientUserId: normalizedSenderUserId,
+                actorUserId: currentUserId,
+            });
+        }
+
+        return result;
     });
 
     // count === 0 означает, что подходящая входящая PENDING-заявка не обновилась.

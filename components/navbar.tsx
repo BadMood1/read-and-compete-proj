@@ -1,8 +1,13 @@
 import { BookOpen, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { signOut } from "@/auth";
 import { NavLinks } from "@/components/nav-links";
+import {
+  NavbarNotificationCenter,
+  NavbarNotificationCenterSkeleton,
+} from "@/components/notifications/navbar-notification-center";
 import { UserAvatar } from "@/components/users/user-avatar";
 import {
   DropdownMenu,
@@ -29,7 +34,7 @@ export function Navbar({ user }: { user: NavbarUser }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 shadow-[0_5px_24px_rgba(48,36,28,0.07)] backdrop-blur">
-      <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+      <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-1 px-4 sm:gap-3 sm:px-6">
         <Link
           href="/"
           aria-label="На главную"
@@ -46,8 +51,13 @@ export function Navbar({ user }: { user: NavbarUser }) {
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <NavLinks />
+
+          {/* Уведомления загружаются отдельно и не задерживают остальной Navbar. */}
+          <Suspense fallback={<NavbarNotificationCenterSkeleton />}>
+            <NavbarNotificationCenter />
+          </Suspense>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

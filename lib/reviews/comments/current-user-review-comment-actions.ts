@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { createBookDetailsBasePath } from "@/lib/books/book-details-navigation";
+import { createReviewCommentNotificationForReviewAuthor } from "@/lib/notifications/notification-creation";
 import prisma from "@/lib/prisma";
 import {
     REVIEW_COMMENT_MAX_LENGTH,
@@ -70,6 +71,7 @@ export async function createCurrentUserReviewComment(
                 id: normalizedReviewId,
             },
             select: {
+                userId: true,
                 text: true,
                 book: {
                     select: {
@@ -108,6 +110,14 @@ export async function createCurrentUserReviewComment(
                     },
                 },
             },
+        });
+
+        // Комментарий и уведомление сохраняются атомарно внутри одной транзакции.
+        await createReviewCommentNotificationForReviewAuthor({
+            transaction,
+            reviewAuthorUserId: review.userId,
+            commentAuthorUserId: currentUserId,
+            reviewCommentId: createdComment.id,
         });
 
         const commentsCount = await transaction.reviewComment.count({

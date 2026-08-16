@@ -28,6 +28,13 @@ enum ReviewReactionType {
   DISLIKE
 }
 
+// События, о которых приложение сообщает пользователю.
+enum NotificationType {
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
+  REVIEW_COMMENT_RECEIVED
+}
+
 // OAuth-профиль GitHub или Google, привязанный к пользователю.
 model Account {
   id                String  @id @default(cuid())
@@ -77,6 +84,10 @@ model User {
   reviews         Review[]
   reviewReactions ReviewReaction[]
   reviewComments  ReviewComment[]
+
+  // Пользователь может получать уведомления и быть автором вызвавшего их действия.
+  receivedNotifications  Notification[] @relation("NotificationRecipient")
+  triggeredNotifications Notification[] @relation("NotificationActor")
 
   // Две отдельные связи нужны, потому что User участвует в заявке в разных ролях.
   sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
@@ -196,9 +207,36 @@ model ReviewComment {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
+  // Для комментария другого пользователя может существовать одно уведомление автору рецензии.
+  notification Notification?
+
   // Ускоряет получение комментариев одной рецензии в порядке публикации.
   @@index([reviewId, createdAt])
   @@map("review_comments")
+}
+
+// Событие для конкретного пользователя, которое можно отметить прочитанным.
+model Notification {
+  id              String           @id @default(cuid())
+  recipientId     String           @map("recipient_id")
+  actorId         String           @map("actor_id")
+  type            NotificationType
+  reviewCommentId String?          @unique @map("review_comment_id")
+  readAt          DateTime?        @map("read_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  // recipient получает уведомление, actor совершил действие, которое его вызвало.
+  recipient User @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Уведомление о комментарии исчезнет вместе с удалённым комментарием или рецензией.
+  // Для событий дружбы это поле остаётся null: они являются самостоятельной историей.
+  reviewComment ReviewComment? @relation(fields: [reviewCommentId], references: [id], onDelete: Cascade)
+
+  // Первый индекс ускоряет последние уведомления, второй — подсчёт непрочитанных.
+  @@index([recipientId, createdAt])
+  @@index([recipientId, readAt])
+  @@map("notifications")
 }
 
 // Заявка в друзья; после принятия эта же запись представляет дружбу пользователей.

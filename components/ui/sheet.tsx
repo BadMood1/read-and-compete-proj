@@ -20,10 +20,7 @@ function SheetPortal(props: React.ComponentProps<typeof SheetPrimitive.Portal>) 
     return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
-function SheetOverlay({
-    className,
-    ...props
-}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+function SheetOverlay({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
     // Затемняет страницу и принимает клик вне панели, по которому Radix закроет Sheet.
     return (
         <SheetPrimitive.Overlay
@@ -57,16 +54,14 @@ function SheetContent({
                     // Те же data-state управляют направлением и длительностью движения самой панели.
                     "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:duration-300 data-[state=closed]:duration-200 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
                     // Начиная с tablet панель меняет направление и выезжает справа.
-                    "md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-[30rem] md:rounded-none md:rounded-l-3xl md:border-y-0 md:border-r-0 md:border-l",
+                    "md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-120 md:rounded-none md:rounded-l-3xl md:border-y-0 md:border-r-0 md:border-l",
                     "md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right md:[--tw-enter-translate-y:0] md:[--tw-exit-translate-y:0]",
                     className,
                 )}
                 {...props}
             >
                 {/* Close стоит первым в tab-порядке, чтобы открытие панели не вызывало клавиатуру телефона. */}
-                <SheetPrimitive.Close
-                    className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                >
+                <SheetPrimitive.Close className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none">
                     <X className="size-4" aria-hidden="true" />
                     <span className="sr-only">Закрыть</span>
                 </SheetPrimitive.Close>
@@ -82,10 +77,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 // Title и Description — не просто стили: Radix связывает их с модальным окном для доступности.
-function SheetTitle({
-    className,
-    ...props
-}: React.ComponentProps<typeof SheetPrimitive.Title>) {
+function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Title>) {
     return (
         <SheetPrimitive.Title
             data-slot="sheet-title"
@@ -95,10 +87,7 @@ function SheetTitle({
     );
 }
 
-function SheetDescription({
-    className,
-    ...props
-}: React.ComponentProps<typeof SheetPrimitive.Description>) {
+function SheetDescription({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Description>) {
     return (
         <SheetPrimitive.Description
             data-slot="sheet-description"
