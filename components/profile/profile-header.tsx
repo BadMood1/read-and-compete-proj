@@ -1,6 +1,7 @@
 import { LibraryBig, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 
+import { ProfileDisplayNameEditor } from "@/components/profile/profile-display-name-editor";
 import { ProfileFriendshipControls } from "@/components/profile/profile-friendship-controls";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/users/user-avatar";
@@ -58,12 +59,18 @@ export function ProfileHeader({
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                         Профиль читателя
                     </p>
-                    <h1 className="mt-2 wrap-break-word text-3xl font-bold tracking-tight sm:text-4xl">
-                        {displayName}
-                    </h1>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                        Книжная статистика и последние прочитанные книги.
-                    </p>
+                    {isCurrentUserProfile ? (
+                        <ProfileDisplayNameEditor initialDisplayName={displayName} />
+                    ) : (
+                        <>
+                            <h1 className="mt-2 wrap-break-word text-3xl font-bold tracking-tight sm:text-4xl">
+                                {displayName}
+                            </h1>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+                                Книжная статистика и последние прочитанные книги.
+                            </p>
+                        </>
+                    )}
                 </div>
 
                 {isCurrentUserProfile ? (
