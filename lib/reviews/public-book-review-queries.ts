@@ -19,6 +19,7 @@ export type PublicBookReviewData = {
     currentUserReaction: ReviewReactionTypeValue | null;
     author: {
         id: string;
+        username: string | null;
         name: string | null;
         image: string | null;
     };
@@ -53,6 +54,7 @@ export async function getPublicReviewsForGoogleBook(
             user: {
                 select: {
                     id: true,
+                    username: true,
                     name: true,
                     image: true,
                 },

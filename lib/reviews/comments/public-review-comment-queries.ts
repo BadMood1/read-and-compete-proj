@@ -40,6 +40,7 @@ export async function getPublicReviewComments(
                     user: {
                         select: {
                             id: true,
+                            username: true,
                             name: true,
                             image: true,
                         },

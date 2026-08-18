@@ -27,16 +27,22 @@ async function AuthenticatedAppLayout({
     const currentUser = session?.user;
 
     // Неавторизованный пользователь не должен увидеть защищённые страницы.
-    // Navbar формирует публичный URL профиля, поэтому его контракт требует гарантированный id.
+    // Без ID нельзя надёжно определить владельца текущей database-сессии.
     if (!currentUser?.id) {
         redirect("/login");
+    }
+
+    // Username обязателен для публичной ссылки на профиль. Welcome находится вне
+    // этой route group, поэтому перенаправление не создаёт цикл.
+    if (!currentUser.username) {
+        redirect("/welcome");
     }
 
     return (
         <div className="flex min-h-svh flex-col">
             <Navbar
                 user={{
-                    id: currentUser.id,
+                    username: currentUser.username,
                     name: currentUser.name,
                     email: currentUser.email,
                     image: currentUser.image,

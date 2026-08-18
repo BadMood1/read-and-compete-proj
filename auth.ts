@@ -12,7 +12,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   // Адаптер сохраняет пользователей, OAuth-аккаунты и сессии в PostgreSQL.
   adapter: PrismaAdapter(prisma),
 
-  // Только после создания нового OAuth-аккаунта предлагаем проверить отображаемое имя.
+  // После создания нового OAuth-аккаунта открываем настройку имени и username.
   pages: {
     newUser: "/welcome",
   },
@@ -21,9 +21,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   providers: [GitHub, Google],
 
   callbacks: {
-    // При database-сессиях Auth.js передаёт сюда пользователя из Prisma.
+    // При database-сессиях Auth.js передаёт сюда актуального пользователя из Prisma.
     session({ session, user }) {
       session.user.id = user.id;
+      session.user.username = user.username;
       return session;
     },
   },

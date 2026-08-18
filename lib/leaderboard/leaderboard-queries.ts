@@ -14,6 +14,7 @@ export type LeaderboardEntry = {
     position: number;
     user: {
         id: string;
+        username: string | null;
         name: string | null;
         image: string | null;
     };
@@ -131,6 +132,7 @@ export async function getLeaderboardResults(
                 : undefined,
         select: {
             id: true,
+            username: true,
             name: true,
             image: true,
             library: {
@@ -173,6 +175,7 @@ export async function getLeaderboardResults(
         return {
             user: {
                 id: user.id,
+                username: user.username,
                 name: user.name,
                 image: user.image,
             },

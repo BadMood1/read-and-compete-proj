@@ -28,7 +28,7 @@ export function FriendsListUserCard({ friend }: FriendsListUserCardProps) {
             <div className="min-w-0 flex-1">
                 <p className="font-semibold transition-colors group-hover:text-primary">
                     <Link
-                        href={createProfilePath(friend.id)}
+                        href={createProfilePath(friend.username ?? friend.id)}
                         aria-label={`Открыть профиль пользователя ${displayName}`}
                         className="block min-w-0 outline-none after:absolute after:inset-0 after:z-10 after:rounded-2xl after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-offset-2"
                     >

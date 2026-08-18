@@ -87,7 +87,7 @@ export function LeaderboardListEntry({ entry, selectedMetric, selectedScope }: L
 
             {/* Аватар и имя образуют одну ссылку, поэтому в строке нет дублирующих переходов. */}
             <Link
-                href={createProfilePath(entry.user.id)}
+                href={createProfilePath(entry.user.username ?? entry.user.id)}
                 aria-label={`Открыть профиль пользователя ${displayName}`}
                 className="group flex min-w-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >

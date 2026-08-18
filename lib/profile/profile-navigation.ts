@@ -4,27 +4,27 @@ import {
     type ReturnPathSearchParameter,
 } from "@/lib/navigation/internal-return-path";
 
-// Собирает единый адрес профиля, чтобы разные части приложения кодировали ID одинаково.
-export function createProfilePath(userId: string) {
-    return `/profile/${encodeURIComponent(userId.trim())}`;
+// Пока мигрируются старые ссылки, идентификатором может быть username или прежний user ID.
+export function createProfilePath(profileIdentifier: string) {
+    return `/profile/${encodeURIComponent(profileIdentifier.trim())}`;
 }
 
 // Собирает канонический путь библиотеки конкретного владельца профиля.
-export function createProfileLibraryPath(userId: string) {
-    return `${createProfilePath(userId)}/library`;
+export function createProfileLibraryPath(profileIdentifier: string) {
+    return `${createProfilePath(profileIdentifier)}/library`;
 }
 
 type CreateProfilePathWithReturnPathOptions = {
-    userId: string;
+    profileIdentifier: string;
     returnPath: string;
 };
 
 // Добавляет профилю адрес страницы, на которую должна вести кнопка «Назад».
 export function createProfilePathWithReturnPath({
-    userId,
+    profileIdentifier,
     returnPath,
 }: CreateProfilePathWithReturnPathOptions) {
-    return createInternalPathWithReturnPath(createProfilePath(userId), returnPath);
+    return createInternalPathWithReturnPath(createProfilePath(profileIdentifier), returnPath);
 }
 
 // Профиль принимает возврат только на страницу книги внутри нашего приложения.

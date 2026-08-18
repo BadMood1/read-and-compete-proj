@@ -8,10 +8,15 @@ export async function GET() {
     // Route Handler не проходит через layout, поэтому самостоятельно проверяем сессию.
     const session = await auth();
     const currentUserId = session?.user?.id;
+    const currentUsername = session?.user?.username;
 
     if (!currentUserId) {
         redirect("/login");
     }
 
-    redirect(createProfilePath(currentUserId));
+    if (!currentUsername) {
+        redirect("/welcome");
+    }
+
+    redirect(createProfilePath(currentUsername));
 }

@@ -84,7 +84,7 @@ export function RecentFriendActivityListItem({
     bookDetailsReturnPath,
 }: RecentFriendActivityListItemProps) {
     const friendDisplayName = getUserDisplayName(activity.friend.name);
-    const friendProfilePath = createProfilePath(activity.friend.id);
+    const friendProfilePath = createProfilePath(activity.friend.username ?? activity.friend.id);
     const bookDetailsPath = createBookDetailsPath({
         googleBooksId: activity.book.googleBooksId,
         returnPath: bookDetailsReturnPath,

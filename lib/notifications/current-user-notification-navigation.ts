@@ -13,7 +13,9 @@ export function createCurrentUserNotificationDestinationPath(
             return "/friends";
 
         case NotificationType.FRIEND_REQUEST_ACCEPTED:
-            return createProfilePath(notification.actor.id);
+            // Настроенный пользователь открывается сразу по username без промежуточного редиректа.
+            // ID остаётся fallback для старого аккаунта, который ещё не прошёл welcome.
+            return createProfilePath(notification.actor.username ?? notification.actor.id);
 
         case NotificationType.REVIEW_COMMENT_RECEIVED:
             // Связанный комментарий удаляется вместе с уведомлением, но null всё равно

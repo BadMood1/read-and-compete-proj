@@ -45,7 +45,9 @@ export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReview
                     {reviews.map((review) => {
                         // Профиль запоминает эту книгу и сможет показать ссылку возврата.
                         const userProfilePath = createProfilePathWithReturnPath({
-                            userId: review.author.id,
+                            // Новые ссылки сразу используют username; ID остаётся fallback
+                            // для старой записи пользователя, который ещё не завершил welcome.
+                            profileIdentifier: review.author.username ?? review.author.id,
                             returnPath: bookPagePath,
                         });
                         const authorDisplayName = getUserDisplayName(review.author.name);

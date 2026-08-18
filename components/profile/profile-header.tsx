@@ -1,7 +1,7 @@
 import { LibraryBig, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 
-import { ProfileDisplayNameEditor } from "@/components/profile/profile-display-name-editor";
+import { ProfileIdentityEditor } from "@/components/profile/profile-identity-editor";
 import { ProfileFriendshipControls } from "@/components/profile/profile-friendship-controls";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/users/user-avatar";
@@ -19,6 +19,7 @@ import { getUserDisplayName } from "@/lib/users/user-display-name";
 type ProfileHeaderProps = {
     profileUserId: string;
     profileDisplayName: string | null;
+    profileUsername: string | null;
     profileImageUrl: string | null;
     currentUserFriendshipState: CurrentUserFriendshipStateValue;
     currentUserFriendLibraryAccessState: CurrentUserFriendLibraryAccessStateValue;
@@ -28,6 +29,7 @@ type ProfileHeaderProps = {
 export function ProfileHeader({
     profileUserId,
     profileDisplayName,
+    profileUsername,
     profileImageUrl,
     currentUserFriendshipState,
     currentUserFriendLibraryAccessState,
@@ -60,12 +62,20 @@ export function ProfileHeader({
                         Профиль читателя
                     </p>
                     {isCurrentUserProfile ? (
-                        <ProfileDisplayNameEditor initialDisplayName={displayName} />
+                        <ProfileIdentityEditor
+                            initialDisplayName={displayName}
+                            initialUsername={profileUsername ?? ""}
+                        />
                     ) : (
                         <>
                             <h1 className="mt-2 wrap-break-word text-3xl font-bold tracking-tight sm:text-4xl">
                                 {displayName}
                             </h1>
+                            {profileUsername ? (
+                                <p className="mt-1 text-sm font-medium text-muted-foreground">
+                                    @{profileUsername}
+                                </p>
+                            ) : null}
                             <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
                                 Книжная статистика и последние прочитанные книги.
                             </p>
@@ -91,7 +101,11 @@ export function ProfileHeader({
                                 size="lg"
                                 className="h-11 w-full rounded-xl px-4 sm:w-auto"
                             >
-                                <Link href={createProfileLibraryPath(profileUserId)}>
+                                <Link
+                                    href={createProfileLibraryPath(
+                                        profileUsername ?? profileUserId,
+                                    )}
+                                >
                                     <LibraryBig aria-hidden="true" />
                                     Библиотека
                                 </Link>

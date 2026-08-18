@@ -33,7 +33,9 @@ export function ReviewCommentListItem({
 
     // При переходе в профиль сохраняем путь книги, чтобы оттуда можно было вернуться назад.
     const authorProfilePath = createProfilePathWithReturnPath({
-        userId: comment.author.id,
+        // Для настроенного профиля сразу строим красивый URL; ID нужен как fallback
+        // для пользователя, который ещё не сохранил username на welcome-странице.
+        profileIdentifier: comment.author.username ?? comment.author.id,
         returnPath: bookPagePath,
     });
 

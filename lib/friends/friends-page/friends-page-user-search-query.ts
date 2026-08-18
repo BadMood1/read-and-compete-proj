@@ -6,6 +6,7 @@ import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 
 export type FriendsPageUserSearchResult = {
     id: string;
+    username: string | null;
     name: string | null;
     image: string | null;
     hasOutgoingFriendRequest: boolean;
@@ -60,6 +61,7 @@ export async function searchUsersForFriendsPage(searchQuery: string): Promise<Fr
         },
         select: {
             id: true,
+            username: true,
             name: true,
             image: true,
             receivedFriendRequests: {
@@ -81,6 +83,7 @@ export async function searchUsersForFriendsPage(searchQuery: string): Promise<Fr
 
     const mappedUsers = users.map((user) => ({
         id: user.id,
+        username: user.username,
         name: user.name,
         image: user.image,
         hasOutgoingFriendRequest: user.receivedFriendRequests.length > 0,

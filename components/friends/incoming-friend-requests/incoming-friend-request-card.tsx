@@ -37,7 +37,7 @@ export function IncomingFriendRequestCard({ sender }: IncomingFriendRequestCardP
         <li>
             <article className="rounded-2xl border border-border bg-background p-3">
                 <Link
-                    href={createProfilePath(sender.id)}
+                    href={createProfilePath(sender.username ?? sender.id)}
                     aria-label={`Открыть профиль пользователя ${senderDisplayName}`}
                     className="group flex min-w-0 items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >

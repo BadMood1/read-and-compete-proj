@@ -105,6 +105,7 @@ export async function createCurrentUserReviewComment(
                 user: {
                     select: {
                         id: true,
+                        username: true,
                         name: true,
                         image: true,
                     },

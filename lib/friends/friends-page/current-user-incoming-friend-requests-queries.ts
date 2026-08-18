@@ -11,6 +11,7 @@ export type CurrentUserIncomingFriendRequestSummary = {
     createdAt: Date;
     sender: {
         id: string;
+        username: string | null;
         name: string | null;
         image: string | null;
     };
@@ -55,6 +56,7 @@ export async function getCurrentUserIncomingFriendRequests(
                 // Email не нужен карточке и не покидает серверный слой запросов.
                 select: {
                     id: true,
+                    username: true,
                     name: true,
                     image: true,
                 },

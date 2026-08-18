@@ -9,6 +9,7 @@ export type PublicReviewCommentData = {
     isAuthoredByCurrentUser: boolean;
     author: {
         id: string;
+        username: string | null;
         name: string | null;
         image: string | null;
     };

@@ -10,6 +10,7 @@ const RECENT_FRIEND_ACTIVITY_LIMIT = 12;
 // Общие публичные данные друга, которые понадобятся каждой строке ленты.
 type RecentFriendActivityUser = {
     id: string;
+    username: string | null;
     name: string | null;
     image: string | null;
 };
@@ -140,6 +141,7 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
                 user: {
                     select: {
                         id: true,
+                        username: true,
                         name: true,
                         image: true,
                     },
@@ -171,6 +173,7 @@ export async function getCurrentUserRecentFriendActivity(): Promise<CurrentUserR
                 user: {
                     select: {
                         id: true,
+                        username: true,
                         name: true,
                         image: true,
                     },

@@ -2,22 +2,26 @@ import "server-only";
 
 import prisma from "@/lib/prisma";
 
-// Получает только публичные данные, необходимые заголовку библиотеки профиля.
-export async function getProfileLibraryOwnerById(profileUserId: string) {
-    const normalizedProfileUserId = profileUserId.trim();
+// Получает владельца по username и временно поддерживает старые ссылки с user ID.
+export async function getProfileLibraryOwnerByIdentifier(profileIdentifier: string) {
+    const normalizedProfileIdentifier = profileIdentifier.trim().toLowerCase();
 
-    if (!normalizedProfileUserId) {
+    if (!normalizedProfileIdentifier) {
         return null;
     }
 
-    return prisma.user.findUnique({
+    return prisma.user.findFirst({
         where: {
-            id: normalizedProfileUserId,
+            OR: [
+                { username: normalizedProfileIdentifier },
+                { id: normalizedProfileIdentifier },
+            ],
         },
         // Email, аватар и OAuth-данные этой компактной странице не нужны.
         select: {
             id: true,
             name: true,
+            username: true,
         },
     });
 }

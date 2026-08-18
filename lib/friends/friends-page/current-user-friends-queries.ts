@@ -13,6 +13,7 @@ const friendDisplayNameCollator = new Intl.Collator("ru", {
 // Публичные данные одного друга, которых достаточно будущей карточке списка.
 export type CurrentUserFriendSummary = {
     id: string;
+    username: string | null;
     name: string | null;
     image: string | null;
     // Настройка принадлежит текущему пользователю и управляет доступом друга к его библиотеке.
@@ -74,6 +75,7 @@ export async function getCurrentUserFriends(
                 // Email и OAuth-данные не нужны карточке и не выходят из слоя запросов.
                 select: {
                     id: true,
+                    username: true,
                     name: true,
                     image: true,
                 },
@@ -81,6 +83,7 @@ export async function getCurrentUserFriends(
             receiver: {
                 select: {
                     id: true,
+                    username: true,
                     name: true,
                     image: true,
                 },

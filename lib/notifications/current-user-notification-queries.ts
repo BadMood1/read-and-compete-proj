@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 // Короткие публичные данные пользователя, который вызвал уведомление.
 type CurrentUserNotificationActor = {
     id: string;
+    username: string | null;
     name: string | null;
     image: string | null;
 };
@@ -75,6 +76,7 @@ export async function getCurrentUserNotifications(): Promise<CurrentUserNotifica
                     // Email и остальные приватные данные пользователя панели не нужны.
                     select: {
                         id: true,
+                        username: true,
                         name: true,
                         image: true,
                     },

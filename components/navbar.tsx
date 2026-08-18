@@ -21,7 +21,7 @@ import { createProfilePath } from "@/lib/profile/profile-navigation";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type NavbarUser = {
-  id: string;
+  username: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
@@ -30,7 +30,7 @@ type NavbarUser = {
 export function Navbar({ user }: { user: NavbarUser }) {
   const displayName = getUserDisplayName(user.name);
   // В интерфейсе сразу используем публичный URL, не заходя через redirect /profile.
-  const profilePath = createProfilePath(user.id);
+  const profilePath = createProfilePath(user.username);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 shadow-[0_5px_24px_rgba(48,36,28,0.07)] backdrop-blur">
@@ -51,66 +51,69 @@ export function Navbar({ user }: { user: NavbarUser }) {
           </span>
         </Link>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center">
           <NavLinks />
 
-          {/* Уведомления загружаются отдельно и не задерживают остальной Navbar. */}
-          <Suspense fallback={<NavbarNotificationCenterSkeleton />}>
-            <NavbarNotificationCenter />
-          </Suspense>
+          {/* Колокольчик и профиль отделены от основных разделов как пользовательские действия. */}
+          <div className="ml-2 flex items-center gap-1 sm:ml-3 sm:gap-2">
+            {/* Уведомления загружаются отдельно и не задерживают остальной Navbar. */}
+            <Suspense fallback={<NavbarNotificationCenterSkeleton />}>
+              <NavbarNotificationCenter />
+            </Suspense>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="rounded-full outline-none ring-offset-2 ring-offset-background transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Открыть меню пользователя"
-              >
-                <UserAvatar
-                  displayName={displayName}
-                  imageUrl={user.image}
-                  className="size-9"
-                />
-              </button>
-            </DropdownMenuTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="rounded-full outline-none ring-offset-2 ring-offset-background transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Открыть меню пользователя"
+                >
+                  <UserAvatar
+                    displayName={displayName}
+                    imageUrl={user.image}
+                    className="size-9"
+                  />
+                </button>
+              </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuLabel>
-                <p className="truncate text-sm font-semibold">{displayName}</p>
-                {user.email ? (
-                  <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
-                    {user.email}
-                  </p>
-                ) : null}
-              </DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel>
+                  <p className="truncate text-sm font-semibold">{displayName}</p>
+                  {user.email ? (
+                    <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+                      {user.email}
+                    </p>
+                  ) : null}
+                </DropdownMenuLabel>
 
-              <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-              <DropdownMenuItem asChild>
-                <Link href={profilePath}>
-                  <UserRound aria-hidden="true" />
-                  Профиль
-                </Link>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <form
-                action={async () => {
-                  "use server";
-
-                  await signOut({ redirectTo: "/login" });
-                }}
-              >
                 <DropdownMenuItem asChild>
-                  <button type="submit" className="w-full text-left">
-                    <LogOut aria-hidden="true" />
-                    Выйти
-                  </button>
+                  <Link href={profilePath}>
+                    <UserRound aria-hidden="true" />
+                    Профиль
+                  </Link>
                 </DropdownMenuItem>
-              </form>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+                <DropdownMenuSeparator />
+
+                <form
+                  action={async () => {
+                    "use server";
+
+                    await signOut({ redirectTo: "/login" });
+                  }}
+                >
+                  <DropdownMenuItem asChild>
+                    <button type="submit" className="w-full text-left">
+                      <LogOut aria-hidden="true" />
+                      Выйти
+                    </button>
+                  </DropdownMenuItem>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </nav>
     </header>

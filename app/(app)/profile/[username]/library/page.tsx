@@ -21,35 +21,50 @@ import {
     createProfileLibraryPath,
     createProfilePath,
 } from "@/lib/profile/profile-navigation";
-import { getProfileLibraryOwnerById } from "@/lib/profile/profile-library-owner-query";
+import { getProfileLibraryOwnerByIdentifier } from "@/lib/profile/profile-library-owner-query";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
 
 type ProfileLibraryPageProps = {
     params: Promise<{
-        userId: string;
+        username: string;
     }>;
     searchParams: Promise<LibraryPageSearchParameters>;
 };
 
 // Проверяет доступ на сервере до запроса приватного содержимого библиотеки.
 export default async function ProfileLibraryPage({ params, searchParams }: ProfileLibraryPageProps) {
-    // ID владельца и фильтры из URL независимы, поэтому получаем их одновременно.
-    const [{ userId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+    // Username владельца и фильтры из URL независимы, поэтому получаем их одновременно.
+    const [{ username: profileIdentifier }, resolvedSearchParams] = await Promise.all([
+        params,
+        searchParams,
+    ]);
     const { searchQuery, selectedReadingStatus } = getLibraryPageFilters(resolvedSearchParams);
 
-    // Данные владельца публичны, а состояние доступа от них не зависит.
-    const [profileLibraryOwner, libraryAccessState] = await Promise.all([
-        getProfileLibraryOwnerById(userId),
-        getCurrentUserFriendLibraryAccessState(userId),
-    ]);
+    const profileLibraryOwner = await getProfileLibraryOwnerByIdentifier(profileIdentifier);
+
+    if (!profileLibraryOwner) {
+        notFound();
+    }
+
+    const canonicalProfileIdentifier = profileLibraryOwner.username ?? profileLibraryOwner.id;
+    const canonicalProfileLibraryPath = createProfileLibraryPath(canonicalProfileIdentifier);
+
+    // Старая ID-ссылка сохраняет фильтры и сразу превращается в канонический username-адрес.
+    if (profileIdentifier.trim().toLowerCase() !== canonicalProfileIdentifier) {
+        redirect(
+            createLibrarySearchAndStatusPath({
+                libraryPagePath: canonicalProfileLibraryPath,
+                searchQuery,
+                readingStatus: selectedReadingStatus,
+            }),
+        );
+    }
+
+    const libraryAccessState = await getCurrentUserFriendLibraryAccessState(profileLibraryOwner.id);
 
     // Защищённый layout обычно не допустит этот случай, но страница безопасна сама по себе.
     if (libraryAccessState === null) {
         redirect("/login");
-    }
-
-    if (!profileLibraryOwner) {
-        notFound();
     }
 
     // У собственной библиотеки остаётся короткий канонический адрес /library.
@@ -63,7 +78,7 @@ export default async function ProfileLibraryPage({ params, searchParams }: Profi
         );
     }
 
-    const profilePagePath = createProfilePath(profileLibraryOwner.id);
+    const profilePagePath = createProfilePath(canonicalProfileIdentifier);
     const profileDisplayName = getUserDisplayName(profileLibraryOwner.name);
 
     // Для отсутствующей дружбы и скрытой библиотеки намеренно показываем одно состояние.
@@ -93,7 +108,7 @@ export default async function ProfileLibraryPage({ params, searchParams }: Profi
         searchQuery,
         selectedReadingStatus,
     });
-    const profileLibraryPagePath = createProfileLibraryPath(profileLibraryOwner.id);
+    const profileLibraryPagePath = canonicalProfileLibraryPath;
 
     // Карточка сохраняет текущие фильтры, чтобы ссылка «Назад» вернула в то же состояние списка.
     const returnPath = createLibrarySearchAndStatusPath({

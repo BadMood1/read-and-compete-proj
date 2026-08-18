@@ -16,7 +16,7 @@ export function FriendUserSearchResultCard({ user }: FriendUserSearchResultCardP
 
     return (
         <Link
-            href={createProfilePath(user.id)}
+            href={createProfilePath(user.username ?? user.id)}
             aria-label={`Открыть профиль пользователя ${displayName}`}
             className="group flex h-full min-h-20 min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-4 transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >

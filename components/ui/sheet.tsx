@@ -36,11 +36,18 @@ function SheetOverlay({ className, ...props }: React.ComponentProps<typeof Sheet
     );
 }
 
+type SheetContentSide = "adaptive" | "right";
+
+type SheetContentProps = React.ComponentProps<typeof SheetPrimitive.Content> & {
+    side?: SheetContentSide;
+};
+
 function SheetContent({
     className,
     children,
+    side = "adaptive",
     ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content>) {
+}: SheetContentProps) {
     // Portal переносит overlay и панель к document.body, поэтому их не обрежут родительские блоки.
     return (
         <SheetPortal>
@@ -49,13 +56,23 @@ function SheetContent({
             <SheetPrimitive.Content
                 data-slot="sheet-content"
                 className={cn(
-                    // На телефоне панель поднимается снизу и занимает не больше 85% высоты экрана.
-                    "fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] min-h-0 w-full flex-col rounded-t-3xl border border-b-0 border-border bg-background shadow-xl outline-none",
-                    // Те же data-state управляют направлением и длительностью движения самой панели.
-                    "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:duration-300 data-[state=closed]:duration-200 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom",
-                    // Начиная с tablet панель меняет направление и выезжает справа.
-                    "md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-120 md:rounded-none md:rounded-l-3xl md:border-y-0 md:border-r-0 md:border-l",
-                    "md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right md:[--tw-enter-translate-y:0] md:[--tw-exit-translate-y:0]",
+                    "fixed z-50 flex min-h-0 flex-col border-border bg-background shadow-xl outline-none",
+                    "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:duration-300 data-[state=closed]:duration-200",
+                    side === "adaptive"
+                        ? [
+                              // По умолчанию на телефоне панель поднимается снизу.
+                              "inset-x-0 bottom-0 max-h-[85dvh] w-full rounded-t-3xl border border-b-0",
+                              // Ограничиваем нижнюю анимацию мобильной шириной, чтобы она не смешивалась с desktop-анимацией.
+                              "max-md:data-[state=open]:slide-in-from-bottom max-md:data-[state=closed]:slide-out-to-bottom",
+                              // Начиная с tablet та же панель движется строго справа, без смещения по вертикали.
+                              "md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:max-w-120 md:rounded-none md:rounded-l-3xl md:border-y-0 md:border-r-0 md:border-l",
+                              "md:data-[state=open]:slide-in-from-right md:data-[state=closed]:slide-out-to-right",
+                          ]
+                        : [
+                              // Этот режим всегда открывает узкую боковую панель справа, включая телефоны.
+                              "inset-y-0 right-0 h-dvh max-h-none w-[92vw] max-w-120 rounded-l-3xl border-y-0 border-r-0 border-l sm:w-full",
+                              "data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
+                          ],
                     className,
                 )}
                 {...props}
