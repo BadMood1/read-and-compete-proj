@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { createUserNameOrUsernameSearchFilter } from "@/lib/friends/friends-page/user-name-or-username-search-filter";
 import prisma from "@/lib/prisma";
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 
@@ -32,10 +33,8 @@ export async function searchUsersForFriendsPage(searchQuery: string): Promise<Fr
             id: {
                 not: currentUserId,
             },
-            name: {
-                contains: normalizedSearchQuery,
-                mode: "insensitive",
-            },
+            // Одна строка находит пользователя и по отображаемому имени, и по @username.
+            ...createUserNameOrUsernameSearchFilter(normalizedSearchQuery),
 
             // Найденный пользователь не должен быть нашим другом
             // или автором уже показанной входящей заявки.

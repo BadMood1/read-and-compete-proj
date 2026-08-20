@@ -35,7 +35,9 @@ export function FriendsListUserCard({ friend }: FriendsListUserCardProps) {
                         <span className="block truncate">{displayName}</span>
                     </Link>
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Открыть профиль</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {friend.username ? `@${friend.username}` : "Открыть профиль"}
+                </p>
             </div>
 
             <div className="flex shrink-0 items-center">

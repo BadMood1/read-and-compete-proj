@@ -31,6 +31,9 @@ export function FriendUserSearchResultCard({ user }: FriendUserSearchResultCardP
                 <p className="truncate font-semibold transition-colors group-hover:text-primary">
                     {displayName}
                 </p>
+                {user.username ? (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">@{user.username}</p>
+                ) : null}
                 <div className="mt-1 min-h-5 text-xs text-muted-foreground">
                     {user.hasOutgoingFriendRequest ? (
                         <span className="inline-flex items-center gap-1">

@@ -2,6 +2,7 @@ import "server-only";
 
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { createUserNameOrUsernameSearchFilter } from "@/lib/friends/friends-page/user-name-or-username-search-filter";
 import prisma from "@/lib/prisma";
 import { getUserDisplayName } from "@/lib/users/user-display-name";
 
@@ -43,21 +44,11 @@ export async function getCurrentUserFriends(
                 ? [
                       {
                           senderId: currentUserId,
-                          receiver: {
-                              name: {
-                                  contains: normalizedSearchQuery,
-                                  mode: "insensitive",
-                              },
-                          },
+                          receiver: createUserNameOrUsernameSearchFilter(normalizedSearchQuery),
                       },
                       {
                           receiverId: currentUserId,
-                          sender: {
-                              name: {
-                                  contains: normalizedSearchQuery,
-                                  mode: "insensitive",
-                              },
-                          },
+                          sender: createUserNameOrUsernameSearchFilter(normalizedSearchQuery),
                       },
                   ]
                 : [

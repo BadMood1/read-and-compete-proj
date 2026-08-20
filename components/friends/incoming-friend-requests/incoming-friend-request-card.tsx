@@ -52,8 +52,9 @@ export function IncomingFriendRequestCard({ sender }: IncomingFriendRequestCardP
                         <p className="truncate font-semibold transition-colors group-hover:text-primary">
                             {senderDisplayName}
                         </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                            Хочет добавить вас в друзья
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {sender.username ? `@${sender.username} · хочет` : "Хочет"} добавить вас в
+                            друзья
                         </p>
                     </div>
 

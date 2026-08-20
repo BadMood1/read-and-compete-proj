@@ -2,6 +2,7 @@ import "server-only";
 
 import { FriendRequestStatus } from "@/app/generated/prisma/enums";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { createUserNameOrUsernameSearchFilter } from "@/lib/friends/friends-page/user-name-or-username-search-filter";
 import prisma from "@/lib/prisma";
 
 // Публичные данные отправителя и ID самой заявки, необходимые карточке списка.
@@ -34,15 +35,10 @@ export async function getCurrentUserIncomingFriendRequests(
         where: {
             receiverId: currentUserId,
             status: FriendRequestStatus.PENDING,
-            // При активном поиске фильтруем имя отправителя заявки.
+            // При активном поиске фильтруем имя или @username отправителя заявки.
             ...(normalizedSearchQuery
                 ? {
-                      sender: {
-                          name: {
-                              contains: normalizedSearchQuery,
-                              mode: "insensitive" as const,
-                          },
-                      },
+                      sender: createUserNameOrUsernameSearchFilter(normalizedSearchQuery),
                   }
                 : {}),
         },

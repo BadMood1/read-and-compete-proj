@@ -25,7 +25,7 @@ export async function FriendsUserSearchSection({ searchQueryPromise }: FriendsUs
                         aria-hidden="true"
                     />
                     <label htmlFor="friends-user-search-query" className="sr-only">
-                        Найти читателя по имени
+                        Найти читателя по имени или username
                     </label>
                     <input
                         id="friends-user-search-query"
@@ -33,7 +33,7 @@ export async function FriendsUserSearchSection({ searchQueryPromise }: FriendsUs
                         type="search"
                         defaultValue={searchQuery}
                         minLength={2}
-                        placeholder="Поиск по имени читателя"
+                        placeholder="Поиск по имени или @username"
                         className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4 text-base shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15"
                     />
                 </div>
