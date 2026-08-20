@@ -2,6 +2,7 @@ import { LibraryBig, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 
 import { ProfileIdentityEditor } from "@/components/profile/profile-identity-editor";
+import { ProfileLinkCopyUsername } from "@/components/profile/profile-link-copy-username";
 import { ProfileFriendshipControls } from "@/components/profile/profile-friendship-controls";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/users/user-avatar";
@@ -50,11 +51,11 @@ export function ProfileHeader({
 
     return (
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+            <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-5 text-left sm:flex sm:gap-5">
                 <UserAvatar
                     displayName={displayName}
                     imageUrl={profileImageUrl}
-                    className="size-24 ring-4 ring-secondary/70 sm:size-28 **:data-[slot=avatar-fallback]:text-2xl"
+                    className="size-20 ring-4 ring-secondary/70 sm:size-28 **:data-[slot=avatar-fallback]:text-2xl"
                 />
 
                 <div className="min-w-0 flex-1">
@@ -68,15 +69,18 @@ export function ProfileHeader({
                         />
                     ) : (
                         <>
-                            <h1 className="mt-2 wrap-break-word text-3xl font-bold tracking-tight sm:text-4xl">
+                            <h1 className="mt-1 wrap-break-word text-2xl font-bold leading-tight tracking-tight sm:mt-2 sm:text-4xl">
                                 {displayName}
                             </h1>
                             {profileUsername ? (
-                                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                                    @{profileUsername}
-                                </p>
+                                <div className="mt-1 flex min-w-0">
+                                    <ProfileLinkCopyUsername
+                                        username={profileUsername}
+                                        profileDisplayName={displayName}
+                                    />
+                                </div>
                             ) : null}
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+                            <p className="mt-2 hidden text-sm leading-6 text-muted-foreground sm:block sm:text-base">
                                 Книжная статистика и последние прочитанные книги.
                             </p>
                         </>
@@ -84,7 +88,11 @@ export function ProfileHeader({
                 </div>
 
                 {isCurrentUserProfile ? (
-                    <Button asChild size="lg" className="h-11 rounded-xl px-4">
+                    <Button
+                        asChild
+                        size="lg"
+                        className="col-span-2 h-11 w-full rounded-xl px-4 sm:ml-auto sm:w-auto"
+                    >
                         <Link href="/library">
                             <LibraryBig aria-hidden="true" />
                             Моя библиотека
@@ -92,7 +100,7 @@ export function ProfileHeader({
                     </Button>
                 ) : (
                     // На чужом профиле действия складываются на мобильном и стоят рядом на desktop.
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+                    <div className="col-span-2 flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
                         {/* Ссылка доступна только другу, которому владелец открыл библиотеку. */}
                         {isCurrentUserFriend && isFriendLibraryVisible ? (
                             <Button

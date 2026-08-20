@@ -9,16 +9,17 @@ export default function ProfileLoading() {
             <div className="motion-safe:animate-pulse space-y-6" aria-hidden="true">
                 {/* Повторяет крупный верхний блок с аватаром, именем и кнопкой. */}
                 <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-                    <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
-                        <div className="size-24 shrink-0 rounded-full bg-secondary/70 sm:size-28" />
+                    <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-5 text-left sm:flex sm:gap-5">
+                        <div className="size-20 shrink-0 rounded-full bg-secondary/70 sm:size-28" />
 
-                        <div className="flex min-w-0 flex-1 flex-col items-center sm:items-start">
+                        <div className="flex min-w-0 flex-1 flex-col items-start">
                             <div className="h-3 w-32 rounded-full bg-muted" />
-                            <div className="mt-3 h-9 w-48 max-w-full rounded-xl bg-muted sm:h-10 sm:w-64" />
-                            <div className="mt-3 h-4 w-full max-w-80 rounded-full bg-muted" />
+                            <div className="mt-3 h-8 w-44 max-w-full rounded-xl bg-muted sm:h-10 sm:w-64" />
+                            <div className="mt-2 h-4 w-28 max-w-full rounded-full bg-muted" />
+                            <div className="mt-3 hidden h-4 w-full max-w-80 rounded-full bg-muted sm:block" />
                         </div>
 
-                        <div className="h-11 w-44 rounded-xl bg-muted" />
+                        <div className="col-span-2 h-11 w-full rounded-xl bg-muted sm:ml-auto sm:w-44" />
                     </div>
                 </section>
 

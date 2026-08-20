@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ProfileIdentityForm } from "@/components/profile/profile-identity-form";
+import { ProfileLinkCopyUsername } from "@/components/profile/profile-link-copy-username";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -55,10 +56,10 @@ export function ProfileIdentityEditor({
     }
 
     return (
-        <div>
+        <div className="min-w-0">
             <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-                <div className="mt-2 flex min-w-0 items-center justify-center gap-1.5 sm:justify-start">
-                    <h1 className="min-w-0 wrap-break-word text-3xl font-bold tracking-tight sm:text-4xl">
+                <div className="mt-1 flex min-w-0 items-center gap-1 sm:mt-2">
+                    <h1 className="min-w-0 wrap-break-word text-2xl font-bold leading-tight tracking-tight sm:text-4xl">
                         {profileIdentity.displayName}
                     </h1>
 
@@ -75,9 +76,12 @@ export function ProfileIdentityEditor({
                     </DialogTrigger>
                 </div>
 
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                    @{profileIdentity.username}
-                </p>
+                <div className="mt-1 flex min-w-0">
+                    <ProfileLinkCopyUsername
+                        username={profileIdentity.username}
+                        profileDisplayName={profileIdentity.displayName}
+                    />
+                </div>
 
                 <DialogContent>
                     <DialogHeader>
@@ -99,7 +103,7 @@ export function ProfileIdentityEditor({
                 </DialogContent>
             </Dialog>
 
-            <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="mt-2 hidden text-sm leading-6 text-muted-foreground sm:block sm:text-base">
                 Книжная статистика и последние прочитанные книги.
             </p>
         </div>
