@@ -11,24 +11,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  createWelcomePagePathWithReturnPath,
+  getValidatedAuthenticationReturnPath,
+} from "@/lib/auth/authentication-return-path";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 
+type LoginPageProps = {
+  searchParams: Promise<{
+    returnPath?: string | string[];
+  }>;
+};
+
 // Сразу показывает skeleton, пока сервер проверяет текущую сессию.
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <Suspense fallback={<LoginPageSkeleton />}>
-      <LoginPageContent />
+      <LoginPageContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
 // Динамическая часть страницы: получаем сессию только во время запроса.
-async function LoginPageContent() {
-  const session = await getCurrentSession();
+async function LoginPageContent({ searchParams }: LoginPageProps) {
+  const [session, resolvedSearchParams] = await Promise.all([
+    getCurrentSession(),
+    searchParams,
+  ]);
+  const returnPath = getValidatedAuthenticationReturnPath(
+    resolvedSearchParams.returnPath,
+  );
 
   // Уже авторизованному пользователю страница входа не нужна.
   if (session?.user) {
-    redirect("/");
+    redirect(
+      session.user.username
+        ? returnPath
+        : createWelcomePagePathWithReturnPath(returnPath),
+    );
   }
 
   return (
@@ -82,8 +102,8 @@ async function LoginPageContent() {
           </CardHeader>
 
           <CardContent className="space-y-3 px-6 sm:px-8">
-            <SignInButton provider="github" />
-            <SignInButton provider="google" />
+            <SignInButton provider="github" returnPath={returnPath} />
+            <SignInButton provider="google" returnPath={returnPath} />
           </CardContent>
 
           <CardFooter className="justify-center border-0 bg-transparent px-6 pb-3 text-center text-xs text-muted-foreground sm:px-8">

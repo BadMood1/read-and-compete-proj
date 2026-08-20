@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { ProfileHeader, ProfileRecentFinishedBooks, ProfileStatistics } from "@/components/profile";
+import { redirectToLoginFromCurrentPage } from "@/lib/auth/current-page-authentication-redirects";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getCurrentUserFriendLibraryAccessState } from "@/lib/friends/library-access/current-user-friend-library-access-queries";
 import { getCurrentUserFriendshipStateWithProfileUser } from "@/lib/friends/profile-friendship/current-user-friendship-queries";
@@ -43,7 +44,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
 
     // Layout уже защищает раздел приложения, а локальная проверка сохраняет строгий тип userId.
     if (!currentUserId) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     if (!profileUser) {
@@ -71,7 +72,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
 
     // null означает, что запросы не смогли определить текущего пользователя.
     if (currentUserFriendshipState === null || currentUserFriendLibraryAccessState === null) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     // Для карточек нужен простой возврат в профиль без бесконечного вложения returnPath.

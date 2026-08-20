@@ -12,11 +12,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   // Адаптер сохраняет пользователей, OAuth-аккаунты и сессии в PostgreSQL.
   adapter: PrismaAdapter(prisma),
 
-  // После создания нового OAuth-аккаунта открываем настройку имени и username.
-  pages: {
-    newUser: "/welcome",
-  },
-
   // Auth.js автоматически читает AUTH_GITHUB_* и AUTH_GOOGLE_* из .env.
   providers: [GitHub, Google],
 

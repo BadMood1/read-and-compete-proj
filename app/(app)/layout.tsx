@@ -1,7 +1,10 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 
 import { Navbar } from "@/components/navbar";
+import {
+    redirectToLoginFromCurrentPage,
+    redirectToWelcomeFromCurrentPage,
+} from "@/lib/auth/current-page-authentication-redirects";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 
 // Сразу показывает fallback, пока проверяется сессия пользователя.
@@ -29,13 +32,13 @@ async function AuthenticatedAppLayout({
     // Неавторизованный пользователь не должен увидеть защищённые страницы.
     // Без ID нельзя надёжно определить владельца текущей database-сессии.
     if (!currentUser?.id) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     // Username обязателен для публичной ссылки на профиль. Welcome находится вне
     // этой route group, поэтому перенаправление не создаёт цикл.
     if (!currentUser.username) {
-        redirect("/welcome");
+        return redirectToWelcomeFromCurrentPage();
     }
 
     return (

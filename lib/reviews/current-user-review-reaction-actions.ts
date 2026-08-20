@@ -6,7 +6,8 @@ import {
 } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 import { createBookDetailsBasePath } from "@/lib/books/book-details-navigation";
-import prisma from "@/lib/prisma";
+import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
+import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 import { revalidatePath } from "next/cache";
 
 export type CurrentUserReviewReactionMutationResult =
@@ -35,7 +36,7 @@ export async function setCurrentUserReviewReaction(
     desiredReaction: ReviewReactionTypeValue | null,
 ): Promise<CurrentUserReviewReactionMutationResult> {
     const session = await auth();
-    const normalizedReviewId = reviewId.trim();
+    const normalizedReviewId = normalizeServerActionStringInput(reviewId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -51,9 +52,9 @@ export async function setCurrentUserReviewReaction(
 
     const currentUserId = session.user.id;
 
-    // prisma.$transaction() нужен, чтобы несколько запросов к БД выполнялись как одна операция.
-    // Если один из них падает с ошибкой, все изменения внутри транзакции откатываются.
-    const mutationResult = await prisma.$transaction(async (transaction) => {
+    // Все запросы выполняются как одна операция, а serializable-режим не позволяет
+    // одновременно удалить текст рецензии и сохранить под ней реакцию.
+    const mutationResult = await runSerializableTransactionWithRetry(async (transaction) => {
         // Проверяем рецензию на сервере: клиенту нельзя доверять автора и наличие текста.
         const review = await transaction.review.findUnique({
             where: {

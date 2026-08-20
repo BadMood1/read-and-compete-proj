@@ -6,7 +6,12 @@ import { GoogleBookSearchResultCard } from "@/components/books/google-book-searc
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
-import { searchGoogleBooks, type GoogleBookSearchResult } from "@/lib/books/google-books-api";
+import {
+    GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH,
+    GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH,
+    searchGoogleBooks,
+    type GoogleBookSearchResult,
+} from "@/lib/books/google-books-api";
 import { getGoogleBookIdsAlreadyInUserLibrary } from "@/lib/books/user-library-queries";
 
 type HomeProps = {
@@ -17,7 +22,11 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
     const rawQuery = (await searchParams).q;
-    const query = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery)?.trim() ?? "";
+    const normalizedQuery = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery)?.trim() ?? "";
+
+    // Оставляем один дополнительный символ, чтобы распознать слишком длинный URL,
+    // но не выводить на страницу весь произвольный пользовательский ввод.
+    const query = normalizedQuery.slice(0, GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH + 1);
 
     return (
         <main className="flex-1">
@@ -53,7 +62,8 @@ export default async function Home({ searchParams }: HomeProps) {
                             name="q"
                             type="search"
                             defaultValue={query}
-                            minLength={2}
+                            minLength={GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH}
+                            maxLength={GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH}
                             required
                             placeholder="Например, Мастер и Маргарита"
                             className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4
@@ -92,13 +102,16 @@ export default async function Home({ searchParams }: HomeProps) {
 async function GoogleBookSearchResults({ query }: { query: string }) {
     let books: GoogleBookSearchResult[] = [];
     let searchFailed = false;
+    const isQueryTooLong = query.length > GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH;
+    const hasValidQueryLength =
+        query.length >= GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH && !isQueryTooLong;
 
     // Сессия и Google Books не зависят друг от друга, поэтому запускаем их ожидание параллельно.
     const sessionPromise = getCurrentSession();
 
     // Только этот компонент ждёт внешний API; форма и Navbar уже отображены.
     try {
-        if (query.length >= 2) {
+        if (hasValidQueryLength) {
             books = await searchGoogleBooks(query);
         }
     } catch (error) {
@@ -123,19 +136,25 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
     return (
         <div className="mt-10">
             <div className="mb-7 flex items-end justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                         Результаты поиска
                     </p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">«{query}»</h2>
+                    <h2 className="mt-1 wrap-break-word text-2xl font-semibold tracking-tight sm:text-3xl">
+                        «{query}»
+                    </h2>
                 </div>
-                {!searchFailed ? (
+                {hasValidQueryLength && !searchFailed ? (
                     <p className="shrink-0 text-sm text-muted-foreground">Найдено: {books.length}</p>
                 ) : null}
             </div>
 
-            {query.length < 2 ? (
+            {query.length < GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH ? (
                 <SearchMessage>Введите хотя бы два символа.</SearchMessage>
+            ) : isQueryTooLong ? (
+                <SearchMessage>
+                    Запрос не должен превышать {GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH} символов.
+                </SearchMessage>
             ) : searchFailed ? (
                 <SearchMessage>Google Books временно не отвечает. Попробуйте повторить поиск.</SearchMessage>
             ) : books.length === 0 ? (
@@ -163,11 +182,13 @@ function GoogleBookSearchResultsSkeleton({ query }: { query: string }) {
     return (
         <div className="mt-12" aria-busy="true" aria-live="polite">
             <div className="mb-7 flex items-end justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                         Результаты поиска
                     </p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">«{query}»</h2>
+                    <h2 className="mt-1 wrap-break-word text-2xl font-semibold tracking-tight sm:text-3xl">
+                        «{query}»
+                    </h2>
                 </div>
                 <p className="shrink-0 text-sm text-muted-foreground">Ищем...</p>
             </div>

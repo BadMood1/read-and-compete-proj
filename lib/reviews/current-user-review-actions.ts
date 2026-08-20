@@ -2,7 +2,9 @@
 
 import { auth } from "@/auth";
 import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
+import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
 import prisma from "@/lib/prisma";
+import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 
 const MIN_REVIEW_RATING = 1;
 const MAX_REVIEW_RATING = 10;
@@ -38,8 +40,8 @@ export async function saveCurrentUserReview(
 ): Promise<CurrentUserReviewMutationResult> {
     // Server Action можно вызвать отдельным POST-запросом, поэтому пользователя проверяем на сервере.
     const session = await auth();
-    const normalizedGoogleBooksId = googleBooksId.trim();
-    const normalizedReviewText = reviewText.trim();
+    const normalizedGoogleBooksId = normalizeServerActionStringInput(googleBooksId);
+    const normalizedReviewText = normalizeServerActionStringInput(reviewText);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -47,6 +49,10 @@ export async function saveCurrentUserReview(
 
     if (!normalizedGoogleBooksId) {
         return { success: false, error: "Не удалось определить книгу." };
+    }
+
+    if (normalizedReviewText === null) {
+        return { success: false, error: "Некорректный текст рецензии." };
     }
 
     if (!isValidReviewRating(rating)) {
@@ -60,110 +66,125 @@ export async function saveCurrentUserReview(
         };
     }
 
-    const book = await prisma.book.findUnique({
-        where: {
-            googleBooksId: normalizedGoogleBooksId,
-        },
-        select: {
-            id: true, // берём Book.id
-            _count: {
-                select: {
-                    readers: {
-                        // Сколько UserBook текущего пользователя связано с этой книгой.
-                        where: {
-                            userId: session.user.id,
+    const mutationResult = await runSerializableTransactionWithRetry(async (transaction) => {
+        // Проверки и сохранение находятся в одной транзакции: параллельный комментарий
+        // или реакция не смогут появиться одновременно с удалением текста рецензии.
+        const book = await transaction.book.findUnique({
+            where: {
+                googleBooksId: normalizedGoogleBooksId,
+            },
+            select: {
+                id: true, // берём Book.id
+                _count: {
+                    select: {
+                        readers: {
+                            // Сколько UserBook текущего пользователя связано с этой книгой.
+                            where: {
+                                userId: session.user.id,
+                            },
+                        },
+                    },
+                },
+                // Unique-ключ гарантирует максимум одну такую рецензию.
+                // Вместе с ней узнаём, появились ли комментарии или реакции.
+                reviews: {
+                    where: {
+                        userId: session.user.id,
+                    },
+                    take: 1,
+                    select: {
+                        _count: {
+                            select: {
+                                comments: true,
+                                reactions: true,
+                            },
                         },
                     },
                 },
             },
-            // Unique-ключ гарантирует максимум одну такую рецензию.
-            // Вместе с ней узнаём, появились ли под ней комментарии.
-            reviews: {
-                where: {
+        });
+
+        if (!book) {
+            // Книга из Google Books ещё не сохранена локально, то есть пользователь её не добавлял.
+            return { success: false, error: "Сначала добавьте книгу в библиотеку." } as const;
+        }
+
+        // есть ли у пользователя наша книга в библиотеке
+        const isBookInCurrentUserLibrary = book._count.readers > 0;
+        const currentUserReview = book.reviews[0];
+        const doesCurrentUserAlreadyHaveReview = currentUserReview !== undefined;
+
+        // Новую рецензию разрешаем только для своей библиотеки.
+        // Существующую можно редактировать даже после удаления UserBook.
+        if (!isBookInCurrentUserLibrary && !doesCurrentUserAlreadyHaveReview) {
+            return {
+                success: false,
+                error: "Сначала добавьте книгу в библиотеку.",
+            } as const;
+        }
+
+        const reviewHasInteractions =
+            currentUserReview !== undefined &&
+            (currentUserReview._count.comments > 0 || currentUserReview._count.reactions > 0);
+
+        // Не оставляем скрытые комментарии, лайки и дизлайки под оценкой без текста.
+        // Удаление рецензии целиком по-прежнему удалит их каскадно.
+        if (!normalizedReviewText && reviewHasInteractions) {
+            return {
+                success: false,
+                error: "Под рецензией уже есть реакции или комментарии. Оставьте текст или удалите рецензию целиком.",
+            } as const;
+        }
+
+        // Составной unique-ключ гарантирует одну рецензию пользователя на книгу.
+        const savedReview = await transaction.review.upsert({
+            where: {
+                userId_bookId: {
                     userId: session.user.id,
-                },
-                take: 1,
-                select: {
-                    _count: {
-                        select: {
-                            comments: true,
-                        },
-                    },
+                    bookId: book.id,
                 },
             },
-        },
-    });
-
-    if (!book) {
-        // Книга из Google Books ещё не сохранена локально, то есть пользователь её не добавлял.
-        return { success: false, error: "Сначала добавьте книгу в библиотеку." };
-    }
-
-    // есть ли у пользователя наша книга в библиотеке
-    const isBookInCurrentUserLibrary = book._count.readers > 0;
-    const currentUserReview = book.reviews[0];
-    const doesCurrentUserAlreadyHaveReview = currentUserReview !== undefined;
-
-    // Новую рецензию разрешаем только для своей библиотеки.
-    // Существующую можно редактировать даже после удаления UserBook.
-    if (!isBookInCurrentUserLibrary && !doesCurrentUserAlreadyHaveReview) {
-        return {
-            success: false,
-            error: "Сначала добавьте книгу в библиотеку.",
-        };
-    }
-
-    // Не оставляем скрытое обсуждение под оценкой без текста.
-    // Удаление рецензии целиком по-прежнему удалит комментарии каскадно.
-    if (!normalizedReviewText && currentUserReview && currentUserReview._count.comments > 0) {
-        return {
-            success: false,
-            error: "Под рецензией уже есть комментарии. Оставьте текст или удалите рецензию целиком.",
-        };
-    }
-
-    // Составной unique-ключ гарантирует одну рецензию пользователя на книгу.
-    const savedReview = await prisma.review.upsert({
-        where: {
-            userId_bookId: {
+            update: {
+                rating,
+                text: normalizedReviewText || null,
+            },
+            create: {
                 userId: session.user.id,
                 bookId: book.id,
+                rating,
+                text: normalizedReviewText || null,
             },
-        },
-        update: {
-            rating,
-            text: normalizedReviewText || null,
-        },
-        create: {
-            userId: session.user.id,
-            bookId: book.id,
-            rating,
-            text: normalizedReviewText || null,
-        },
-        select: {
-            id: true,
-            rating: true,
-            text: true,
-            // После сохранения кнопка комментариев сразу получает актуальный счётчик.
-            _count: {
-                select: {
-                    comments: true,
+            select: {
+                id: true,
+                rating: true,
+                text: true,
+                // После сохранения кнопка комментариев сразу получает актуальный счётчик.
+                _count: {
+                    select: {
+                        comments: true,
+                    },
                 },
             },
-        },
+        });
+
+        return {
+            success: true,
+            review: {
+                id: savedReview.id,
+                rating: savedReview.rating,
+                text: savedReview.text,
+                commentsCount: savedReview._count.comments,
+            },
+        } as const;
     });
+
+    if (!mutationResult.success) {
+        return mutationResult;
+    }
 
     revalidateBookDetailsAndUserProfilePages(normalizedGoogleBooksId, session.user.id);
 
-    return {
-        success: true,
-        review: {
-            id: savedReview.id,
-            rating: savedReview.rating,
-            text: savedReview.text,
-            commentsCount: savedReview._count.comments,
-        },
-    };
+    return mutationResult;
 }
 
 // Удаляет только рецензию текущего пользователя.
@@ -171,7 +192,7 @@ export async function deleteCurrentUserReview(
     googleBooksId: string,
 ): Promise<CurrentUserReviewMutationResult> {
     const session = await auth();
-    const normalizedGoogleBooksId = googleBooksId.trim();
+    const normalizedGoogleBooksId = normalizeServerActionStringInput(googleBooksId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };

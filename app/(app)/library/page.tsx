@@ -3,6 +3,7 @@ import {
     UserLibraryBookCard,
 } from "@/components/books/user-library";
 import { Button } from "@/components/ui/button";
+import { redirectToLoginFromCurrentPage } from "@/lib/auth/current-page-authentication-redirects";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import {
     filterLibraryBooksBySearchAndReadingStatus,
@@ -13,7 +14,6 @@ import { createLibrarySearchAndStatusPath } from "@/lib/books/user-library-navig
 import { getLibraryBooksForUser } from "@/lib/books/user-library-queries";
 import { LibraryBig, SearchX } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 type LibraryPageProps = {
     searchParams: Promise<LibraryPageSearchParameters>;
@@ -26,7 +26,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
     const session = await getCurrentSession();
 
     if (!session?.user?.id) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     // Библиотека и параметры URL независимы, поэтому ждём их одновременно.

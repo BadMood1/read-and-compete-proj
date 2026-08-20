@@ -2,6 +2,27 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     cacheComponents: true,
+
+    // Запрещаем открывать страницы приложения внутри чужого iframe.
+    // CSP используется современными браузерами, X-Frame-Options оставлен для совместимости.
+    async headers() {
+        return [
+            {
+                source: "/(.*)",
+                headers: [
+                    {
+                        key: "Content-Security-Policy",
+                        value: "frame-ancestors 'none';",
+                    },
+                    {
+                        key: "X-Frame-Options",
+                        value: "DENY",
+                    },
+                ],
+            },
+        ];
+    },
+
     images: {
         // Разрешаем оптимизатору только известные источники обложек и OAuth-аватаров.
         remotePatterns: [

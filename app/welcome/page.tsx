@@ -4,30 +4,51 @@ import { Suspense } from "react";
 
 import { ProfileWelcomeIdentityEditor } from "@/components/profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    createLoginPagePathWithReturnPath,
+    getValidatedAuthenticationReturnPath,
+} from "@/lib/auth/authentication-return-path";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { getProfileWelcomeData } from "@/lib/profile/profile-welcome-query";
 
+type WelcomePageProps = {
+    searchParams: Promise<{
+        returnPath?: string | string[];
+    }>;
+};
+
 // Suspense сразу показывает форму-заглушку, пока сервер проверяет сессию и подбирает username.
-export default function WelcomePage() {
+export default function WelcomePage({ searchParams }: WelcomePageProps) {
     return (
         <Suspense fallback={<WelcomePageSkeleton />}>
-            <WelcomePageContent />
+            <WelcomePageContent searchParams={searchParams} />
         </Suspense>
     );
 }
 
-// Auth.js открывает этот блок после первого OAuth-входа; страницу можно открыть вручную для теста.
-async function WelcomePageContent() {
-    const session = await getCurrentSession();
+// После каждого OAuth-входа готовый профиль проходит дальше, а новый пользователь видит форму.
+async function WelcomePageContent({ searchParams }: WelcomePageProps) {
+    const [session, resolvedSearchParams] = await Promise.all([
+        getCurrentSession(),
+        searchParams,
+    ]);
+    const returnPath = getValidatedAuthenticationReturnPath(
+        resolvedSearchParams.returnPath,
+    );
 
     if (!session?.user?.id) {
-        redirect("/login");
+        redirect(createLoginPagePathWithReturnPath(returnPath));
+    }
+
+    // Существующему пользователю форма не нужна: welcome работает как короткий continuation-gate.
+    if (session.user.username) {
+        redirect(returnPath);
     }
 
     const welcomeData = await getProfileWelcomeData(session.user.id);
 
     if (!welcomeData) {
-        redirect("/login");
+        redirect(createLoginPagePathWithReturnPath(returnPath));
     }
 
     return (
@@ -47,6 +68,7 @@ async function WelcomePageContent() {
                     <ProfileWelcomeIdentityEditor
                         initialDisplayName={welcomeData.displayName}
                         initialUsername={welcomeData.username}
+                        returnPath={returnPath}
                     />
                 </CardContent>
             </Card>

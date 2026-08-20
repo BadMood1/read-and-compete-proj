@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import {
+    redirectToLoginFromCurrentPage,
+    redirectToWelcomeFromCurrentPage,
+} from "@/lib/auth/current-page-authentication-redirects";
 import { createProfilePath } from "@/lib/profile/profile-navigation";
 
 // /profile — только короткий адрес: отправляем пользователя на его публичный URL до рендера UI.
@@ -11,11 +15,11 @@ export async function GET() {
     const currentUsername = session?.user?.username;
 
     if (!currentUserId) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     if (!currentUsername) {
-        redirect("/welcome");
+        return redirectToWelcomeFromCurrentPage();
     }
 
     redirect(createProfilePath(currentUsername));

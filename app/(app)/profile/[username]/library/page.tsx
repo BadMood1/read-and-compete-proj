@@ -8,6 +8,7 @@ import {
 } from "@/components/books/user-library";
 import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { Button } from "@/components/ui/button";
+import { redirectToLoginFromCurrentPage } from "@/lib/auth/current-page-authentication-redirects";
 import {
     filterLibraryBooksBySearchAndReadingStatus,
     getLibraryPageFilters,
@@ -64,7 +65,7 @@ export default async function ProfileLibraryPage({ params, searchParams }: Profi
 
     // Защищённый layout обычно не допустит этот случай, но страница безопасна сама по себе.
     if (libraryAccessState === null) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     // У собственной библиотеки остаётся короткий канонический адрес /library.

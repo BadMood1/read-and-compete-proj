@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { createBookDetailsBasePath } from "@/lib/books/book-details-navigation";
+import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
 import { createReviewCommentNotificationForReviewAuthor } from "@/lib/notifications/notification-creation";
 import prisma from "@/lib/prisma";
 import {
     REVIEW_COMMENT_MAX_LENGTH,
     type PublicReviewCommentData,
 } from "@/lib/reviews/comments/review-comment-types";
+import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 
 type CreateCurrentUserReviewCommentResult =
     | {
@@ -39,8 +41,8 @@ export async function createCurrentUserReviewComment(
     commentText: string,
 ): Promise<CreateCurrentUserReviewCommentResult> {
     const session = await auth();
-    const normalizedReviewId = reviewId.trim();
-    const normalizedCommentText = commentText.trim();
+    const normalizedReviewId = normalizeServerActionStringInput(reviewId);
+    const normalizedCommentText = normalizeServerActionStringInput(commentText);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -64,7 +66,8 @@ export async function createCurrentUserReviewComment(
     const currentUserId = session.user.id;
 
     // Создание и последующий подсчёт выполняются вместе: при ошибке комментарий не сохранится наполовину.
-    const mutationResult = await prisma.$transaction(async (transaction) => {
+    // Serializable-режим также не позволяет одновременно удалить текст рецензии и добавить комментарий.
+    const mutationResult = await runSerializableTransactionWithRetry(async (transaction) => {
         // Сервер повторно проверяет, что рецензия существует и действительно содержит текст.
         const review = await transaction.review.findUnique({
             where: {
@@ -161,7 +164,7 @@ export async function deleteCurrentUserReviewComment(
     commentId: string,
 ): Promise<DeleteCurrentUserReviewCommentResult> {
     const session = await auth();
-    const normalizedCommentId = commentId.trim();
+    const normalizedCommentId = normalizeServerActionStringInput(commentId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };

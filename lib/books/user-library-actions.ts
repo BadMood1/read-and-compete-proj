@@ -1,12 +1,13 @@
 "use server";
 
-import { Prisma } from "@/app/generated/prisma/client";
 import { ReadingStatus, type ReadingStatus as ReadingStatusValue } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
 import { getGoogleBookById } from "@/lib/books/google-books-api";
 import { createUserLibraryCacheTag } from "@/lib/books/user-library-cache";
+import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
 import prisma from "@/lib/prisma";
+import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 import { revalidatePath, updateTag } from "next/cache";
 
 // Возможные ответы интерфейсу после добавления или удаления книги.
@@ -32,39 +33,10 @@ type UpdateCurrentUserBookReadingStatusResult =
       };
 
 const ALLOWED_READING_STATUSES = Object.values(ReadingStatus);
-const SERIALIZABLE_TRANSACTION_ATTEMPTS = 3;
 
 // TypeScript проверяет наш код, а эта функция защищает Server Action от произвольного POST-запроса.
-function isReadingStatus(value: string): value is ReadingStatusValue {
+function isReadingStatus(value: unknown): value is ReadingStatusValue {
     return ALLOWED_READING_STATUSES.some((readingStatus) => readingStatus === value);
-}
-
-// Функция выполняет изменение статуса книги как одну безопасную транзакцию. Если две книги одновременно
-//  получают статус FINISHED и возникает конфликт счётчиков, она повторяет операцию до трёх раз,
-// чтобы сохранить правильные значения 6, затем 7, а не два раза 6.
-// (например, если оч. быстро отметим разные книги "Прочитано")
-async function runSerializableLibraryTransactionWithRetry<Result>(
-    operation: (transaction: Prisma.TransactionClient) => Promise<Result>,
-): Promise<Result> {
-    for (let attempt = 1; attempt <= SERIALIZABLE_TRANSACTION_ATTEMPTS; attempt++) {
-        try {
-            return await prisma.$transaction(operation, {
-                isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-            });
-        } catch (error) {
-            const shouldRetryTransaction =
-                error instanceof Prisma.PrismaClientKnownRequestError &&
-                error.code === "P2034" &&
-                attempt < SERIALIZABLE_TRANSACTION_ATTEMPTS;
-
-            if (!shouldRetryTransaction) {
-                throw error;
-            }
-        }
-    }
-
-    // Цикл либо возвращает результат, либо выбрасывает последнюю ошибку.
-    throw new Error("Не удалось завершить транзакцию изменения библиотеки.");
 }
 
 // Изменение личной библиотеки влияет на неё саму, страницу книги и статистику профиля.
@@ -82,7 +54,7 @@ export async function addBookToCurrentUserLibrary(googleBooksId: string): Promis
     const session = await auth();
 
     // Убираем случайные пробелы и дальше используем только нормализованный ID.
-    const normalizedBookId = googleBooksId.trim();
+    const normalizedBookId = normalizeServerActionStringInput(googleBooksId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -169,7 +141,7 @@ export async function removeBookFromCurrentUserLibrary(
 ): Promise<BookLibraryMutationResult> {
     // Удаление — отдельный публичный Server Action, поэтому снова проверяем сессию и входные данные.
     const session = await auth();
-    const normalizedBookId = googleBooksId.trim();
+    const normalizedBookId = normalizeServerActionStringInput(googleBooksId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -204,7 +176,7 @@ export async function updateCurrentUserBookReadingStatus(
 
     // ID пользователя всегда берём из серверной сессии, а не доверяем клиенту.
     const session = await auth();
-    const normalizedBookId = googleBooksId.trim();
+    const normalizedBookId = normalizeServerActionStringInput(googleBooksId);
 
     if (!session?.user?.id) {
         return { success: false, error: "Сначала войдите в аккаунт." };
@@ -221,7 +193,7 @@ export async function updateCurrentUserBookReadingStatus(
     // !-- ПРОВЕРКИ ---
     const currentUserId = session.user.id;
 
-    const currentUserBookExists = await runSerializableLibraryTransactionWithRetry(async (transaction) => {
+    const currentUserBookExists = await runSerializableTransactionWithRetry(async (transaction) => {
         // Читаем состояние внутри транзакции, чтобы снимок считался из тех же данных.
         const currentUserBook = await transaction.userBook.findFirst({
             where: {

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
+    "db:migrate:deploy": "prisma migrate deploy",
     "seed:test-reviews": "node --env-file=.env scripts/seed-test-book-reviews.mjs",
     "seed:test-reviews:cleanup": "node --env-file=.env scripts/seed-test-book-reviews.mjs --cleanup",
     "session:test-user": "node --env-file=.env scripts/create-test-user-session.mjs"

@@ -53,6 +53,9 @@ const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 5000;
 const SEARCH_CACHE_SECONDS = 900;
 
+export const GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH = 2;
+export const GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH = 100;
+
 // Настройки определяют, нужно ли кэшировать конкретный запрос к Google Books.
 type GoogleBooksRequestOptions = {
     cache?: RequestCache;
@@ -158,7 +161,11 @@ function mapGoogleBook(volume: GoogleBookVolume): GoogleBookSearchResult {
 export async function searchGoogleBooks(query: string): Promise<GoogleBookSearchResult[]> {
     const normalizedQuery = query.trim();
 
-    if (normalizedQuery.length < 2) {
+    // Ограничение проверяется повторно на сервере: maxLength у input можно обойти через URL.
+    if (
+        normalizedQuery.length < GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH ||
+        normalizedQuery.length > GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH
+    ) {
         return [];
     }
 

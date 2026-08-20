@@ -1,5 +1,9 @@
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
+import {
+  createWelcomePagePathWithReturnPath,
+  getValidatedAuthenticationReturnPath,
+} from "@/lib/auth/authentication-return-path";
 
 type OAuthProvider = "github" | "google";
 
@@ -51,16 +55,23 @@ const providerContent = {
   },
 } satisfies Record<OAuthProvider, { label: string; icon: React.ReactNode }>;
 
-export function SignInButton({ provider }: { provider: OAuthProvider }) {
+type SignInButtonProps = {
+  provider: OAuthProvider;
+  returnPath: string;
+};
+
+export function SignInButton({ provider, returnPath }: SignInButtonProps) {
   const content = providerContent[provider];
+  const validatedReturnPath = getValidatedAuthenticationReturnPath(returnPath);
+  const welcomePagePath = createWelcomePagePathWithReturnPath(validatedReturnPath);
 
   return (
     <form
       action={async () => {
         "use server";
 
-        // Auth.js сам создаст OAuth URL и обработает callback провайдера.
-        await signIn(provider, { redirectTo: "/" });
+        // После OAuth welcome пропустит готовый профиль или предложит настроить новый.
+        await signIn(provider, { redirectTo: welcomePagePath });
       }}
     >
       <Button

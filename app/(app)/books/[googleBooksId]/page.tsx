@@ -1,10 +1,11 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import Image from "next/image";
 import AddOrRemoveBookFromLibraryButton from "@/components/books/add-or-remove-book-from-library-button";
 import { PageBackNavigationLink } from "@/components/navigation/page-back-navigation-link";
 import { BookRatingSummary } from "@/components/reviews/book-rating-summary";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
+import { redirectToLoginFromCurrentPage } from "@/lib/auth/current-page-authentication-redirects";
 import {
     createBookDetailsPath,
     getValidatedBookDetailsReturnPath,
@@ -77,7 +78,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
     // Защита layout остаётся основной, а эта проверка не даёт странице работать без userId.
     if (!currentUserId) {
-        redirect("/login");
+        return redirectToLoginFromCurrentPage();
     }
 
     // Все запросы используют уже известные ID, но друг от друга не зависят.
