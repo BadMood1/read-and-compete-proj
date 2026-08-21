@@ -1,4 +1,5 @@
 import { BookOpen } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -106,8 +107,14 @@ async function LoginPageContent({ searchParams }: LoginPageProps) {
             <SignInButton provider="google" returnPath={returnPath} />
           </CardContent>
 
-          <CardFooter className="justify-center border-0 bg-transparent px-6 pb-3 text-center text-xs text-muted-foreground sm:px-8">
-            Мы не храним пароли — вход обрабатывают GitHub и Google.
+          <CardFooter className="flex-col justify-center gap-2 border-0 bg-transparent px-6 pb-3 text-center text-xs text-muted-foreground sm:px-8">
+            <p>Мы не храним пароли — вход обрабатывают GitHub и Google.</p>
+            <Link
+              href="/policy"
+              className="font-medium underline decoration-border underline-offset-4 transition-colors hover:text-primary"
+            >
+              Политика конфиденциальности
+            </Link>
           </CardFooter>
         </Card>
       </section>
@@ -163,8 +170,9 @@ function LoginPageSkeleton() {
             <div className="h-11 w-full rounded-xl bg-muted" />
           </CardContent>
 
-          <CardFooter className="justify-center border-0 bg-transparent px-6 pb-3 sm:px-8">
+          <CardFooter className="flex-col justify-center gap-2 border-0 bg-transparent px-6 pb-3 sm:px-8">
             <div className="h-4 w-64 max-w-full rounded-md bg-muted" />
+            <div className="h-4 w-40 rounded-md bg-muted" />
           </CardFooter>
         </Card>
       </section>
