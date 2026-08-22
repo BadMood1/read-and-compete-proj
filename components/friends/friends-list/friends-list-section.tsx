@@ -72,7 +72,7 @@ export function FriendsListSection({ searchQueryPromise }: FriendsListSectionPro
         <FriendsListLibraryAccessSettingsProvider>
             <section
                 aria-labelledby="friends-list-heading"
-                className="flex h-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                className="flex h-full min-w-0 w-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
             >
                 <FriendsListSectionHeader />
 

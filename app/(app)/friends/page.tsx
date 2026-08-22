@@ -32,8 +32,8 @@ export default function FriendsPage({ searchParams }: FriendsPageProps) {
                 <FriendsUserSearchSection searchQueryPromise={searchQueryPromise} />
             </Suspense>
 
-            {/* На desktop оба блока стоят в одной строке и растягиваются до общей высоты. */}
-            <div className="mt-4 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]">
+            {/* На desktop заявки получают достаточно места для двух кнопок, забирая его у списка друзей. */}
+            <div className="mt-4 grid min-w-0 grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)]">
                 <FriendsListSection searchQueryPromise={searchQueryPromise} />
                 <IncomingFriendRequestsSection searchQueryPromise={searchQueryPromise} />
             </div>

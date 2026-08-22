@@ -68,14 +68,14 @@ export function IncomingFriendRequestsSection({
     return (
         <section
             aria-labelledby="incoming-friend-requests-heading"
-            className="flex h-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
+            className="flex h-full min-w-0 w-full flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6"
         >
             <div className="flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary">
                     <UserRoundCheck className="size-5 text-primary" aria-hidden="true" />
                 </span>
 
-                <div>
+                <div className="min-w-0">
                     <h2
                         id="incoming-friend-requests-heading"
                         tabIndex={-1}

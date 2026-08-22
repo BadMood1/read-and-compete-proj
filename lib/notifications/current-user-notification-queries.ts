@@ -29,7 +29,8 @@ type CurrentUserNotificationReviewComment = {
 export type CurrentUserNotificationSummary = {
     id: string;
     type: NotificationType;
-    createdAt: Date;
+    // Строка ISO одинаково передаётся и через Server Component, и через JSON API.
+    createdAt: string;
     isRead: boolean;
     actor: CurrentUserNotificationActor;
     // У событий дружбы комментария нет, поэтому Prisma вернёт null.
@@ -117,8 +118,9 @@ export async function getCurrentUserNotifications(): Promise<CurrentUserNotifica
         unreadNotificationsCount,
         totalNotificationsCount,
         // UI достаточно простого флага; точную внутреннюю дату прочтения наружу не отдаём.
-        notifications: notificationRecords.map(({ readAt, ...notification }) => ({
+        notifications: notificationRecords.map(({ readAt, createdAt, ...notification }) => ({
             ...notification,
+            createdAt: createdAt.toISOString(),
             isRead: readAt !== null,
         })),
     };

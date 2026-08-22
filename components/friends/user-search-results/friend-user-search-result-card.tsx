@@ -18,32 +18,33 @@ export function FriendUserSearchResultCard({ user }: FriendUserSearchResultCardP
         <Link
             href={createProfilePath(user.username ?? user.id)}
             aria-label={`Открыть профиль пользователя ${displayName}`}
-            className="group flex h-full min-h-20 min-w-0 items-center gap-3 rounded-2xl border border-border bg-background p-4 transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="group flex min-h-16 min-w-0 items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2.5 transition hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
             <UserAvatar
                 displayName={displayName}
                 imageUrl={user.image}
-                size="lg"
-                className="ring-2 ring-secondary/65"
+                className="ring-1 ring-secondary/65"
             />
 
             <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold transition-colors group-hover:text-primary">
+                <p className="truncate text-sm font-semibold leading-5 transition-colors group-hover:text-primary">
                     {displayName}
+
+                    {user.username ? (
+                        <span className="ml-1.5 font-normal text-muted-foreground">@{user.username}</span>
+                    ) : null}
                 </p>
-                {user.username ? (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">@{user.username}</p>
-                ) : null}
-                <div className="mt-1 min-h-5 text-xs text-muted-foreground">
+
+                <div className="mt-0.5 min-w-0 text-xs leading-4 text-muted-foreground">
                     {user.hasOutgoingFriendRequest ? (
-                        <span className="inline-flex items-center gap-1">
-                            <Clock3 className="size-3.5" aria-hidden="true" />
-                            Заявка отправлена
+                        <span className="flex min-w-0 items-center gap-1">
+                            <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
+                            <span className="truncate">Заявка отправлена</span>
                         </span>
                     ) : (
-                        <span className="inline-flex items-center gap-1 text-primary">
-                            <UserPlus className="size-3.5" aria-hidden="true" />
-                            Можно добавить в друзья
+                        <span className="flex min-w-0 items-center gap-1 text-primary">
+                            <UserPlus className="size-3.5 shrink-0" aria-hidden="true" />
+                            <span className="truncate">Можно добавить в друзья</span>
                         </span>
                     )}
                 </div>

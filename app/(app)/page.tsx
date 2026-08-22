@@ -3,6 +3,7 @@ import Form from "next/form";
 import { Suspense } from "react";
 
 import { GoogleBookSearchResultCard } from "@/components/books/google-book-search";
+import { HomePageSkeleton } from "@/components/home/home-page-skeleton";
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
@@ -20,7 +21,20 @@ type HomeProps = {
     }>;
 };
 
-export default async function Home({ searchParams }: HomeProps) {
+export default function Home({ searchParams }: HomeProps) {
+    return (
+        <main className="flex-1">
+            {/* Только главная ждёт searchParams под этим fallback; соседние routes его не увидят. */}
+            <Suspense fallback={<HomePageSkeleton />}>
+                {/* <HomePageSkeleton /> */}
+                <HomePageContent searchParams={searchParams} />
+            </Suspense>
+        </main>
+    );
+}
+
+// Динамическая часть страницы определяет, показывать приветствие или результаты поиска.
+async function HomePageContent({ searchParams }: HomeProps) {
     const rawQuery = (await searchParams).q;
     const normalizedQuery = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery)?.trim() ?? "";
 
@@ -29,73 +43,70 @@ export default async function Home({ searchParams }: HomeProps) {
     const query = normalizedQuery.slice(0, GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH + 1);
 
     return (
-        <main className="flex-1">
-            <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-8">
-                {!query ? (
-                    <div className="">
-                        <p className="text-sm font-semibold text-primary">Поиск книг</p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">
-                            Найдите следующую книгу
-                        </h1>
-                        <p className="mt-4 leading-7 text-muted-foreground">
-                            Ищите по названию или автору. Найденную книгу можно будет добавить в личную
-                            библиотеку на следующем шаге.
-                        </p>
-                    </div>
-                ) : (
-                    <div>
-                        <p className="text-sm font-semibold text-primary">Поиск книг</p>
-                    </div>
-                )}
+        <section className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-8">
+            {!query ? (
+                <div>
+                    <p className="text-sm font-semibold text-primary">Поиск книг</p>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-5xl">
+                        Найдите следующую книгу
+                    </h1>
+                    <p className="mt-4 leading-7 text-muted-foreground">
+                        Ищите по названию или автору. Найденную книгу можно будет добавить в личную библиотеку
+                        на следующем шаге.
+                    </p>
+                </div>
+            ) : (
+                <div>
+                    <p className="text-sm font-semibold text-primary">Поиск книг</p>
+                </div>
+            )}
 
-                <Form action="/" role="search" className="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <label htmlFor="book-query" className="sr-only">
-                        Название книги или автор
-                    </label>
-                    <div className="relative flex-1">
-                        <Search
-                            className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
-                            aria-hidden="true"
-                        />
-                        <input
-                            id="book-query"
-                            name="q"
-                            type="search"
-                            defaultValue={query}
-                            minLength={GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH}
-                            maxLength={GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH}
-                            required
-                            placeholder="Например, Мастер и Маргарита"
-                            className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4
+            <Form action="/" role="search" className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <label htmlFor="book-query" className="sr-only">
+                    Название книги или автор
+                </label>
+                <div className="relative flex-1">
+                    <Search
+                        className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+                        aria-hidden="true"
+                    />
+                    <input
+                        id="book-query"
+                        name="q"
+                        type="search"
+                        defaultValue={query}
+                        minLength={GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH}
+                        maxLength={GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH}
+                        required
+                        placeholder="Например, Мастер и Маргарита"
+                        className="h-12 w-full rounded-xl border border-input bg-card pl-12 pr-4
                              text-base shadow-sm outline-none transition 
                              placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15"
-                        />
-                    </div>
-                    <Button type="submit" size="lg" className="h-12 rounded-xl px-6 text-base shadow-sm">
-                        Найти
-                        <ArrowRight aria-hidden="true" />
-                    </Button>
-                </Form>
+                    />
+                </div>
+                <Button type="submit" size="lg" className="h-12 rounded-xl px-6 text-base shadow-sm">
+                    Найти
+                    <ArrowRight aria-hidden="true" />
+                </Button>
+            </Form>
 
-                {!query ? (
-                    <div className="mt-12 flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/45 px-6 text-center">
-                        <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary">
-                            <Search className="size-5 text-primary" aria-hidden="true" />
-                        </span>
-                        <h2 className="mt-4 font-semibold">Начните с поиска</h2>
-                        <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-                            Результаты появятся здесь — с обложкой, авторами, годом издания и количеством
-                            страниц.
-                        </p>
-                    </div>
-                ) : (
-                    // Новый query перезапускает Suspense и снова показывает skeleton.
-                    <Suspense key={query} fallback={<GoogleBookSearchResultsSkeleton query={query} />}>
-                        <GoogleBookSearchResults query={query} />
-                    </Suspense>
-                )}
-            </section>
-        </main>
+            {!query ? (
+                <div className="mt-12 flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/45 px-6 text-center">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary">
+                        <Search className="size-5 text-primary" aria-hidden="true" />
+                    </span>
+                    <h2 className="mt-4 font-semibold">Начните с поиска</h2>
+                    <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+                        Результаты появятся здесь — с обложкой, авторами, годом издания и количеством страниц.
+                    </p>
+                </div>
+            ) : (
+                // Новый query перезапускает Suspense и снова показывает skeleton.
+                <Suspense key={query} fallback={<GoogleBookSearchResultsSkeleton query={query} />}>
+                    <GoogleBookSearchResults query={query} />
+                </Suspense>
+            )}
+        </section>
     );
 }
 
@@ -103,8 +114,7 @@ async function GoogleBookSearchResults({ query }: { query: string }) {
     let books: GoogleBookSearchResult[] = [];
     let searchFailed = false;
     const isQueryTooLong = query.length > GOOGLE_BOOK_SEARCH_QUERY_MAX_LENGTH;
-    const hasValidQueryLength =
-        query.length >= GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH && !isQueryTooLong;
+    const hasValidQueryLength = query.length >= GOOGLE_BOOK_SEARCH_QUERY_MIN_LENGTH && !isQueryTooLong;
 
     // Сессия и Google Books не зависят друг от друга, поэтому запускаем их ожидание параллельно.
     const sessionPromise = getCurrentSession();

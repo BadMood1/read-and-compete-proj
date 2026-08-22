@@ -59,7 +59,8 @@ export function FriendsUserSearchSectionSkeleton() {
             role="status"
             aria-label="Загружаем поиск читателей"
         >
-            <div className="h-12 min-w-0 flex-1 rounded-xl border border-border bg-card" />
+            <div className="h-12 w-full flex-none rounded-xl border border-border bg-card sm:min-w-0 sm:flex-1" />
+
             <div className="h-12 w-full rounded-xl bg-primary/25 sm:w-28" />
         </div>
     );

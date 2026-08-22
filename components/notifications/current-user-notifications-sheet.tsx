@@ -26,6 +26,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-message";
+import { useCurrentUserNotificationsRefresh } from "@/hooks/use-current-user-notifications-refresh";
 import {
     deleteCurrentUserReadNotifications,
     markAllCurrentUserNotificationsAsRead,
@@ -62,8 +63,13 @@ export function CurrentUserNotificationsSheet({
 }: CurrentUserNotificationsSheetProps) {
     const currentPagePath = usePathname();
 
+    const {
+        notificationsData,
+        updateNotificationsData,
+        refreshCurrentUserNotifications,
+    } = useCurrentUserNotificationsRefresh(initialNotificationsData, currentPagePath);
+
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [notificationsData, setNotificationsData] = useState(initialNotificationsData);
     const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeletingReadNotifications, setIsDeletingReadNotifications] = useState(false);
@@ -81,6 +87,13 @@ export function CurrentUserNotificationsSheet({
 
         if (shouldOpen) {
             setErrorMessage(null);
+
+            // Панель открывается сразу со старыми данными и незаметно заменяет их свежими.
+            void refreshCurrentUserNotifications({ ignoreRecentRefresh: true }).then((result) => {
+                if (!result.success) {
+                    setErrorMessage(result.error);
+                }
+            });
         }
     }
 
@@ -102,7 +115,7 @@ export function CurrentUserNotificationsSheet({
                     return;
                 }
 
-                setNotificationsData((currentData) => ({
+                updateNotificationsData((currentData) => ({
                     ...currentData,
                     unreadNotificationsCount: result.unreadNotificationsCount,
                     notifications: currentData.notifications.map((notification) =>
@@ -135,7 +148,7 @@ export function CurrentUserNotificationsSheet({
             }
 
             // Action уже вернул свежие последние 30, включая параллельно пришедшие события.
-            setNotificationsData(result.notificationsData);
+            updateNotificationsData(result.notificationsData);
         } catch {
             setErrorMessage("Не удалось отметить уведомления прочитанными.");
         } finally {
@@ -172,7 +185,7 @@ export function CurrentUserNotificationsSheet({
             }
 
             // Свежий список уже заполнен более старыми записями вместо удалённых.
-            setNotificationsData(result.notificationsData);
+            updateNotificationsData(result.notificationsData);
             setIsDeleteDialogOpen(false);
         } catch {
             setErrorMessage("Не удалось очистить прочитанные уведомления.");
