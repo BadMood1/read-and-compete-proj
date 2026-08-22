@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import Form from "next/form";
 
+import { NavigationResettingSearchInput } from "@/components/navigation/navigation-resetting-search-input";
 import { Button } from "@/components/ui/button";
 
 type FriendsUserSearchSectionProps = {
@@ -27,7 +28,8 @@ export async function FriendsUserSearchSection({ searchQueryPromise }: FriendsUs
                     <label htmlFor="friends-user-search-query" className="sr-only">
                         Найти читателя по имени или username
                     </label>
-                    <input
+                    <NavigationResettingSearchInput
+                        key={searchQuery}
                         id="friends-user-search-query"
                         name="q"
                         type="search"

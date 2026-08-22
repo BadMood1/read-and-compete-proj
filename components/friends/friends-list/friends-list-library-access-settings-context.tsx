@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
 
 type FriendsListLibraryAccessSettingsContextValue = {
     isManagingLibraryAccess: boolean;
@@ -22,10 +22,18 @@ export function FriendsListLibraryAccessSettingsProvider({
     children,
 }: FriendsListLibraryAccessSettingsProviderProps) {
     const [isManagingLibraryAccess, setIsManagingLibraryAccess] = useState(false);
-    const [pendingLibraryVisibilityUpdateCount, setPendingLibraryVisibilityUpdateCount] =
-        useState(0);
+    const [pendingLibraryVisibilityUpdateCount, setPendingLibraryVisibilityUpdateCount] = useState(0);
 
     const isAnyLibraryVisibilityUpdatePending = pendingLibraryVisibilityUpdateCount > 0;
+
+    // Cache Components сохраняет страницу в React Activity при переходе.
+    // Cleanup закрывает временный режим настройки, когда /friends становится скрытой.
+    useLayoutEffect(() => {
+        return () => {
+            // регистрирует функцию очистки
+            setIsManagingLibraryAccess(false);
+        };
+    }, []);
 
     function toggleLibraryAccessSettings() {
         // Не скрываем тумблеры и связанные с ними ошибки, пока сервер сохраняет настройку.

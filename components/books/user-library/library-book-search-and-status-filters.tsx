@@ -5,6 +5,7 @@ import Form from "next/form";
 import Link from "next/link";
 
 import type { ReadingStatus } from "@/app/generated/prisma/enums";
+import { NavigationResettingSearchInput } from "@/components/navigation/navigation-resetting-search-input";
 import { Button } from "@/components/ui/button";
 import { READING_STATUS_LABELS, READING_STATUS_ORDER } from "@/lib/books/reading-status-labels";
 import { createLibrarySearchAndStatusPath } from "@/lib/books/user-library-navigation";
@@ -38,7 +39,8 @@ export function LibraryBookSearchAndStatusFilters({
                         className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
                         aria-hidden="true"
                     />
-                    <input
+                    <NavigationResettingSearchInput
+                        key={searchQuery}
                         id="library-book-query"
                         name="q"
                         type="search"

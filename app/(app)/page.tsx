@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { GoogleBookSearchResultCard } from "@/components/books/google-book-search";
 import { HomePageSkeleton } from "@/components/home/home-page-skeleton";
+import { NavigationResettingSearchInput } from "@/components/navigation/navigation-resetting-search-input";
 import { Button } from "@/components/ui/button";
 import { getCurrentSession } from "@/lib/auth/get-current-session";
 import { createSearchResultsReturnPath } from "@/lib/books/book-details-navigation";
@@ -70,7 +71,8 @@ async function HomePageContent({ searchParams }: HomeProps) {
                         className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
                         aria-hidden="true"
                     />
-                    <input
+                    <NavigationResettingSearchInput
+                        key={query}
                         id="book-query"
                         name="q"
                         type="search"
