@@ -19,7 +19,11 @@ export default function ProfileLoading() {
                             <div className="mt-3 hidden h-4 w-full max-w-80 rounded-full bg-muted sm:block" />
                         </div>
 
-                        <div className="col-span-2 h-11 w-full rounded-xl bg-muted sm:ml-auto sm:w-44" />
+                        {/* В профиле владельца справа находятся доступ и переход в библиотеку. */}
+                        <div className="col-span-2 flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
+                            <div className="h-11 w-full rounded-xl bg-muted sm:w-40" />
+                            <div className="h-11 w-full rounded-xl bg-primary/20 sm:w-40" />
+                        </div>
                     </div>
                 </section>
 

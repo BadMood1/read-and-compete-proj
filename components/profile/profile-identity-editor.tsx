@@ -104,7 +104,7 @@ export function ProfileIdentityEditor({
             </Dialog>
 
             <p className="mt-2 hidden text-sm leading-6 text-muted-foreground sm:block sm:text-base">
-                Книжная статистика и последние прочитанные книги.
+                Книжная статистика и читательская активность.
             </p>
         </div>
     );

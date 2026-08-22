@@ -25,6 +25,7 @@ export async function getUserProfileByIdentifier(profileIdentifier: string) {
             name: true,
             username: true,
             image: true,
+            recentFinishedBooksVisibleToNonFriends: true,
             _count: {
                 select: {
                     library: {
@@ -42,7 +43,7 @@ export async function getUserProfileByIdentifier(profileIdentifier: string) {
     }
 
     // После определения локального ID независимые части статистики можно получить одновременно.
-    const [finishedPagesSummary, ratingSummary, recentFinishedBookEntries] = await Promise.all([
+    const [finishedPagesSummary, ratingSummary] = await Promise.all([
         // aggregate - посчитать итоговые показатели
         prisma.book.aggregate({
             where: {
@@ -70,31 +71,6 @@ export async function getUserProfileByIdentifier(profileIdentifier: string) {
                 rating: true,
             },
         }),
-        // Получаем не всю историю, а только пять последних завершённых книг.
-        prisma.userBook.findMany({
-            where: {
-                userId: profileUser.id,
-                status: ReadingStatus.FINISHED,
-                finishedAt: {
-                    not: null,
-                },
-            },
-            orderBy: {
-                finishedAt: "desc",
-            },
-            take: 5,
-            select: {
-                finishedAt: true,
-                book: {
-                    select: {
-                        googleBooksId: true,
-                        title: true,
-                        authors: true,
-                        coverUrl: true,
-                    },
-                },
-            },
-        }),
     ]);
 
     return {
@@ -102,6 +78,8 @@ export async function getUserProfileByIdentifier(profileIdentifier: string) {
         name: profileUser.name,
         username: profileUser.username,
         image: profileUser.image,
+        recentFinishedBooksVisibleToNonFriends:
+            profileUser.recentFinishedBooksVisibleToNonFriends,
         statistics: {
             finishedBooksCount: profileUser._count.library,
             // Если прочитанных книг с известным числом страниц нет, показываем ноль.
@@ -109,10 +87,5 @@ export async function getUserProfileByIdentifier(profileIdentifier: string) {
             ratingsCount: ratingSummary._count._all,
             averageReviewRating: ratingSummary._avg.rating,
         },
-        // Убираем служебную вложенность UserBook.book, чтобы карточкам было проще читать данные.
-        recentFinishedBooks: recentFinishedBookEntries.map((userLibraryEntry) => ({
-            ...userLibraryEntry.book,
-            finishedAt: userLibraryEntry.finishedAt,
-        })),
     };
 }

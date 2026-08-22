@@ -80,6 +80,9 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
 
+  // Управляет только последними книгами в профиле; полный доступ к библиотеке остаётся дружеским.
+  recentFinishedBooksVisibleToNonFriends Boolean @default(true) @map("recent_finished_books_visible_to_non_friends")
+
   accounts        Account[]
   sessions        Session[]
   library         UserBook[]

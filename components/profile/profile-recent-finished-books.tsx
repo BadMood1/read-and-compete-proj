@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen, LockKeyhole } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -15,6 +15,7 @@ type ProfileRecentFinishedBook = {
 type ProfileRecentFinishedBooksProps = {
     bookDetailsReturnPath: string;
     books: ProfileRecentFinishedBook[];
+    canViewRecentFinishedBooks: boolean;
 };
 
 const finishedBookDateFormatter = new Intl.DateTimeFormat("ru-RU", {
@@ -28,6 +29,7 @@ const finishedBookDateFormatter = new Intl.DateTimeFormat("ru-RU", {
 export function ProfileRecentFinishedBooks({
     bookDetailsReturnPath,
     books,
+    canViewRecentFinishedBooks,
 }: ProfileRecentFinishedBooksProps) {
     // Одинаковый заголовок нужен и заполненному, и пустому состоянию секции.
     const sectionHeading = (
@@ -41,12 +43,28 @@ export function ProfileRecentFinishedBooks({
         </>
     );
 
+    if (!canViewRecentFinishedBooks) {
+        return (
+            <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                {sectionHeading}
+
+                <div className="mt-5 flex min-h-40 flex-col items-center justify-center rounded-2xl bg-muted/55 px-4 text-center sm:min-h-50">
+                    <LockKeyhole className="size-8 text-primary/65" aria-hidden="true" />
+                    <p className="mt-3 font-medium">История чтения скрыта</p>
+                    <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+                        Пользователь ограничил доступ к последним прочитанным книгам.
+                    </p>
+                </div>
+            </section>
+        );
+    }
+
     if (books.length === 0) {
         return (
             <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
                 {sectionHeading}
 
-                <div className="mt-5 flex min-h-40 sm:min-h-50 flex-col items-center justify-center rounded-2xl bg-muted/55 px-4 text-center">
+                <div className="mt-5 flex min-h-40 flex-col items-center justify-center rounded-2xl bg-muted/55 px-4 text-center sm:min-h-50">
                     <BookOpen className="size-8 text-primary/65" aria-hidden="true" />
                     <p className="mt-3 font-medium">История завершений пока пуста</p>
                     <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">

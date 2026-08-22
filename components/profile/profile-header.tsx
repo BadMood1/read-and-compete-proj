@@ -1,6 +1,7 @@
 import { LibraryBig, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 
+import { ProfileAccessSettingsDialog } from "@/components/profile/profile-access-settings-dialog";
 import { ProfileIdentityEditor } from "@/components/profile/profile-identity-editor";
 import { ProfileLinkCopyUsername } from "@/components/profile/profile-link-copy-username";
 import { ProfileFriendshipControls } from "@/components/profile/profile-friendship-controls";
@@ -22,6 +23,7 @@ type ProfileHeaderProps = {
     profileDisplayName: string | null;
     profileUsername: string | null;
     profileImageUrl: string | null;
+    profileRecentFinishedBooksVisibleToNonFriends: boolean;
     currentUserFriendshipState: CurrentUserFriendshipStateValue;
     currentUserFriendLibraryAccessState: CurrentUserFriendLibraryAccessStateValue;
 };
@@ -32,6 +34,7 @@ export function ProfileHeader({
     profileDisplayName,
     profileUsername,
     profileImageUrl,
+    profileRecentFinishedBooksVisibleToNonFriends,
     currentUserFriendshipState,
     currentUserFriendLibraryAccessState,
 }: ProfileHeaderProps) {
@@ -81,23 +84,32 @@ export function ProfileHeader({
                                 </div>
                             ) : null}
                             <p className="mt-2 hidden text-sm leading-6 text-muted-foreground sm:block sm:text-base">
-                                Книжная статистика и последние прочитанные книги.
+                                Книжная статистика и читательская активность.
                             </p>
                         </>
                     )}
                 </div>
 
                 {isCurrentUserProfile ? (
-                    <Button
-                        asChild
-                        size="lg"
-                        className="col-span-2 h-11 w-full rounded-xl px-4 sm:ml-auto sm:w-auto"
-                    >
-                        <Link href="/library">
-                            <LibraryBig aria-hidden="true" />
-                            Моя библиотека
-                        </Link>
-                    </Button>
+                    // Обе настройки собственного профиля собраны справа в одну группу действий.
+                    <div className="col-span-2 flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+                        <ProfileAccessSettingsDialog
+                            initialRecentFinishedBooksVisibleToNonFriends={
+                                profileRecentFinishedBooksVisibleToNonFriends
+                            }
+                        />
+
+                        <Button
+                            asChild
+                            size="lg"
+                            className="h-11 w-full rounded-xl px-4 sm:w-auto"
+                        >
+                            <Link href="/library">
+                                <LibraryBig aria-hidden="true" />
+                                Моя библиотека
+                            </Link>
+                        </Button>
+                    </div>
                 ) : (
                     // На чужом профиле действия складываются на мобильном и стоят рядом на desktop.
                     <div className="col-span-2 flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">

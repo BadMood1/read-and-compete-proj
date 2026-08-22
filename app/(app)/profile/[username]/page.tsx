@@ -11,6 +11,8 @@ import {
     createProfilePathWithReturnPath,
     getValidatedProfileReturnPath,
 } from "@/lib/profile/profile-navigation";
+import { getProfileRecentFinishedBooks } from "@/lib/profile/profile-recent-finished-books-query";
+import { canCurrentUserViewProfileRecentFinishedBooks } from "@/lib/profile/profile-recent-finished-books-visibility";
 import { getUserProfileByIdentifier } from "@/lib/profile/profile-user-query";
 
 type ProfilePageProps = {
@@ -75,6 +77,17 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         return redirectToLoginFromCurrentPage();
     }
 
+    const canViewRecentFinishedBooks = canCurrentUserViewProfileRecentFinishedBooks({
+        currentUserLibraryAccessState: currentUserFriendLibraryAccessState,
+        areRecentFinishedBooksVisibleToNonFriends:
+            profileUser.recentFinishedBooksVisibleToNonFriends,
+    });
+
+    // Закрытые названия книг даже не запрашиваются из БД для текущего зрителя.
+    const recentFinishedBooks = canViewRecentFinishedBooks
+        ? await getProfileRecentFinishedBooks(profileUser.id)
+        : [];
+
     // Для карточек нужен простой возврат в профиль без бесконечного вложения returnPath.
     const currentProfilePagePath = createProfilePath(canonicalProfileIdentifier);
 
@@ -90,6 +103,9 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
                     profileDisplayName={profileUser.name}
                     profileUsername={profileUser.username}
                     profileImageUrl={profileUser.image}
+                    profileRecentFinishedBooksVisibleToNonFriends={
+                        profileUser.recentFinishedBooksVisibleToNonFriends
+                    }
                     currentUserFriendshipState={currentUserFriendshipState}
                     currentUserFriendLibraryAccessState={currentUserFriendLibraryAccessState}
                 />
@@ -98,7 +114,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
 
                 <ProfileRecentFinishedBooks
                     bookDetailsReturnPath={currentProfilePagePath}
-                    books={profileUser.recentFinishedBooks}
+                    books={recentFinishedBooks}
+                    canViewRecentFinishedBooks={canViewRecentFinishedBooks}
                 />
             </div>
         </main>
