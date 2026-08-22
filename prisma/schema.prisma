@@ -22,7 +22,7 @@ enum FriendRequestStatus {
   REJECTED
 }
 
-// Взаимоисключающие реакции пользователя на публичную рецензию.
+// Взаимоисключающие реакции пользователя на текстовую рецензию, включая собственную.
 enum ReviewReactionType {
   LIKE
   DISLIKE
@@ -181,7 +181,7 @@ model Review {
   @@map("reviews")
 }
 
-// Лайк или дизлайк, поставленный пользователем публичной рецензии.
+// Лайк или дизлайк, поставленный пользователем текстовой рецензии, включая собственную.
 model ReviewReaction {
   id        String             @id @default(cuid())
   userId    String             @map("user_id")

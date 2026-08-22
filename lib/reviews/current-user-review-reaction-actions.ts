@@ -7,6 +7,7 @@ import {
 import { auth } from "@/auth";
 import { createBookDetailsBasePath } from "@/lib/books/book-details-navigation";
 import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
+import { getReviewReactionCounts } from "@/lib/reviews/review-reaction-counts";
 import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 import { revalidatePath } from "next/cache";
 
@@ -55,13 +56,12 @@ export async function setCurrentUserReviewReaction(
     // Все запросы выполняются как одна операция, а serializable-режим не позволяет
     // одновременно удалить текст рецензии и сохранить под ней реакцию.
     const mutationResult = await runSerializableTransactionWithRetry(async (transaction) => {
-        // Проверяем рецензию на сервере: клиенту нельзя доверять автора и наличие текста.
+        // Проверяем рецензию на сервере: клиенту нельзя доверять её наличие и текст.
         const review = await transaction.review.findUnique({
             where: {
                 id: normalizedReviewId,
             },
             select: {
-                userId: true,
                 text: true,
                 book: {
                     select: {
@@ -73,10 +73,6 @@ export async function setCurrentUserReviewReaction(
 
         if (!review) {
             return { success: false, error: "Рецензия не найдена." } as const;
-        }
-
-        if (review.userId === currentUserId) {
-            return { success: false, error: "Нельзя оценивать собственную рецензию." } as const;
         }
 
         if (!review.text?.trim()) {
@@ -126,23 +122,14 @@ export async function setCurrentUserReviewReaction(
             },
         });
 
-        let likesCount = 0;
-        let dislikesCount = 0;
-
-        for (const reactionGroup of reactionCountGroups) {
-            if (reactionGroup.type === ReviewReactionType.LIKE) {
-                likesCount = reactionGroup._count._all;
-            } else {
-                dislikesCount = reactionGroup._count._all;
-            }
-        }
+        const reactionCounts = getReviewReactionCounts(reactionCountGroups);
 
         return {
             success: true,
             googleBooksId: review.book.googleBooksId,
             currentUserReaction: desiredReaction,
-            likesCount,
-            dislikesCount,
+            likesCount: reactionCounts.likesCount,
+            dislikesCount: reactionCounts.dislikesCount,
         } as const;
     });
 

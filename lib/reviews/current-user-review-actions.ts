@@ -1,9 +1,11 @@
 "use server";
 
+import type { ReviewReactionType as ReviewReactionTypeValue } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 import { revalidateBookDetailsAndUserProfilePages } from "@/lib/books/book-related-page-revalidation";
 import { runSerializableTransactionWithRetry } from "@/lib/database/run-serializable-transaction-with-retry";
 import prisma from "@/lib/prisma";
+import { getReviewReactionCounts } from "@/lib/reviews/review-reaction-counts";
 import { normalizeServerActionStringInput } from "@/lib/validation/normalize-server-action-string-input";
 
 const MIN_REVIEW_RATING = 1;
@@ -15,6 +17,9 @@ export type CurrentUserReviewData = {
     rating: number;
     text: string | null;
     commentsCount: number;
+    likesCount: number;
+    dislikesCount: number;
+    currentUserReaction: ReviewReactionTypeValue | null;
 };
 
 // Один тип ответа подходит и сохранению, и удалению рецензии.
@@ -158,6 +163,16 @@ export async function saveCurrentUserReview(
                 id: true,
                 rating: true,
                 text: true,
+                // Собственная реакция нужна, чтобы после сохранения не сбросить выбранную кнопку.
+                reactions: {
+                    where: {
+                        userId: session.user.id,
+                    },
+                    select: {
+                        type: true,
+                    },
+                    take: 1,
+                },
                 // После сохранения кнопка комментариев сразу получает актуальный счётчик.
                 _count: {
                     select: {
@@ -167,6 +182,18 @@ export async function saveCurrentUserReview(
             },
         });
 
+        // Считаем реакции после upsert, чтобы ответ содержал актуальное состояние рецензии.
+        const reactionCountGroups = await transaction.reviewReaction.groupBy({
+            by: ["type"],
+            where: {
+                reviewId: savedReview.id,
+            },
+            _count: {
+                _all: true,
+            },
+        });
+        const reactionCounts = getReviewReactionCounts(reactionCountGroups);
+
         return {
             success: true,
             review: {
@@ -174,6 +201,9 @@ export async function saveCurrentUserReview(
                 rating: savedReview.rating,
                 text: savedReview.text,
                 commentsCount: savedReview._count.comments,
+                likesCount: reactionCounts.likesCount,
+                dislikesCount: reactionCounts.dislikesCount,
+                currentUserReaction: savedReview.reactions[0]?.type ?? null,
             },
         } as const;
     });

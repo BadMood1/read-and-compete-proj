@@ -5,6 +5,7 @@ import {
     type ReviewReactionType as ReviewReactionTypeValue,
 } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
+import type { ReviewReactionCounts } from "@/lib/reviews/review-reaction-counts";
 
 const PUBLIC_BOOK_REVIEWS_LIMIT = 20;
 
@@ -102,11 +103,6 @@ export async function getPublicReviewsForGoogleBook(
             _all: true, // считаем кол-во лайков/дизлайков для конкретной рецензии
         },
     });
-
-    type ReviewReactionCounts = {
-        likesCount: number;
-        dislikesCount: number;
-    };
 
     // Map связывает локальный ID рецензии с уже подсчитанными реакциями.
     const reactionCountsByReviewId = new Map<string, ReviewReactionCounts>();

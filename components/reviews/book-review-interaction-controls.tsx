@@ -13,24 +13,38 @@ import { useAutoDismissErrorMessage } from "@/hooks/use-auto-dismiss-error-messa
 import { setCurrentUserReviewReaction } from "@/lib/reviews/current-user-review-reaction-actions";
 import { cn } from "@/lib/utils";
 
-type PublicBookReviewInteractionControlsProps = {
+export type BookReviewReactionState = {
+    currentUserReaction: ReviewReactionTypeValue | null;
+    likesCount: number;
+    dislikesCount: number;
+};
+
+type BookReviewInteractionControlsProps = {
     reviewId: string;
     initialLikesCount: number;
     initialDislikesCount: number;
     initialCommentsCount: number;
     initialCurrentUserReaction: ReviewReactionTypeValue | null;
     bookPagePath: string;
+    className?: string;
+    commentsTriggerClassName?: string;
+    onCommentsCountChange?: (commentsCount: number) => void;
+    onReactionChange?: (reactionState: BookReviewReactionState) => void;
 };
 
-// Объединяет компактные действия под публичной рецензией.
-export function PublicBookReviewInteractionControls({
+// Объединяет реакции и комментарии как для своей, так и для чужой рецензии.
+export function BookReviewInteractionControls({
     reviewId,
     initialLikesCount,
     initialDislikesCount,
     initialCommentsCount,
     initialCurrentUserReaction,
     bookPagePath,
-}: PublicBookReviewInteractionControlsProps) {
+    className,
+    commentsTriggerClassName,
+    onCommentsCountChange,
+    onReactionChange,
+}: BookReviewInteractionControlsProps) {
     // Начальные значения приходят из серверного запроса страницы книги.
     // После клика компонент хранит подтверждённые сервером значения локально.
     const [likesCount, setLikesCount] = useState(initialLikesCount);
@@ -67,6 +81,11 @@ export function PublicBookReviewInteractionControls({
             setCurrentUserReaction(result.currentUserReaction);
             setLikesCount(result.likesCount);
             setDislikesCount(result.dislikesCount);
+            onReactionChange?.({
+                currentUserReaction: result.currentUserReaction,
+                likesCount: result.likesCount,
+                dislikesCount: result.dislikesCount,
+            });
         } catch {
             setErrorMessage("Не удалось изменить реакцию. Попробуйте ещё раз.");
         } finally {
@@ -83,7 +102,7 @@ export function PublicBookReviewInteractionControls({
     const isDislikeRequestPending = isUpdatingReaction && pendingReactionType === ReviewReactionType.DISLIKE;
 
     return (
-        <div className="mt-3 w-full max-w-full sm:w-fit">
+        <div className={cn("mt-3 w-full max-w-full sm:w-fit", className)}>
             {/* На телефоне действия делят строку на три колонки, начиная с sm занимают свою ширину. */}
             <div
                 role="group"
@@ -146,6 +165,8 @@ export function PublicBookReviewInteractionControls({
                     reviewId={reviewId}
                     initialCommentsCount={initialCommentsCount}
                     bookPagePath={bookPagePath}
+                    triggerClassName={commentsTriggerClassName}
+                    onCommentsCountChange={onCommentsCountChange}
                 />
             </div>
 

@@ -3,6 +3,7 @@
 import { Star } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
+import type { BookReviewReactionState } from "@/components/reviews/book-review-interaction-controls";
 import { CurrentUserReviewForm } from "./current-user-review-form";
 import { SavedCurrentUserReview } from "./saved-current-user-review";
 import {
@@ -94,6 +95,18 @@ export function CurrentUserBookReviewEditor({
         );
     }
 
+    // Не даём реакции сброситься после перехода в режим редактирования и обратно.
+    function handleReviewReactionChange(reactionState: BookReviewReactionState) {
+        setCurrentReview((existingReview) =>
+            existingReview
+                ? {
+                      ...existingReview,
+                      ...reactionState,
+                  }
+                : existingReview,
+        );
+    }
+
     return (
         <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
             <div className={isShowingSavedReview ? "flex items-center gap-3" : "flex items-start gap-3"}>
@@ -143,6 +156,7 @@ export function CurrentUserBookReviewEditor({
                     onStartReviewEditing={handleStartReviewEditing}
                     onReviewDeleted={handleReviewDeleted}
                     onCommentsCountChange={handleReviewCommentsCountChange}
+                    onReactionChange={handleReviewReactionChange}
                 />
             ) : (
                 <CurrentUserReviewForm

@@ -1,7 +1,7 @@
 import { MessageSquareText } from "lucide-react";
 import Link from "next/link";
 
-import { PublicBookReviewInteractionControls } from "@/components/reviews/public-book-review-interaction-controls";
+import { BookReviewInteractionControls } from "@/components/reviews/book-review-interaction-controls";
 import { UserAvatar } from "@/components/users/user-avatar";
 import { createProfilePathWithReturnPath } from "@/lib/profile/profile-navigation";
 import type { PublicBookReviewData } from "@/lib/reviews/public-book-review-queries";
@@ -98,7 +98,7 @@ export function PublicBookReviewList({ reviews, bookPagePath }: PublicBookReview
                                                     {review.text}
                                                 </p>
 
-                                                <PublicBookReviewInteractionControls
+                                                <BookReviewInteractionControls
                                                     reviewId={review.id}
                                                     initialLikesCount={review.likesCount}
                                                     initialDislikesCount={review.dislikesCount}

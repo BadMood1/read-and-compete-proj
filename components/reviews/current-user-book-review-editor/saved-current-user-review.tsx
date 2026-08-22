@@ -1,7 +1,10 @@
 import { LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 
-import { ReviewCommentsSheet } from "@/components/reviews/comments/review-comments-sheet";
+import {
+    BookReviewInteractionControls,
+    type BookReviewReactionState,
+} from "@/components/reviews/book-review-interaction-controls";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,6 +29,7 @@ type SavedCurrentUserReviewProps = {
     onStartReviewEditing: () => void;
     onReviewDeleted: () => void;
     onCommentsCountChange: (commentsCount: number) => void;
+    onReactionChange: (reactionState: BookReviewReactionState) => void;
 };
 
 // Показывает сохранённую рецензию и самостоятельно управляет её удалением.
@@ -36,6 +40,7 @@ export function SavedCurrentUserReview({
     onStartReviewEditing,
     onReviewDeleted,
     onCommentsCountChange,
+    onReactionChange,
 }: SavedCurrentUserReviewProps) {
     const [isDeletingReview, setIsDeletingReview] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -88,15 +93,19 @@ export function SavedCurrentUserReview({
                 <p className="text-sm text-muted-foreground">Текст рецензии не добавлен.</p>
             )}
 
-            {/* Комментарии и управление рецензией остаются одной компактной нижней строкой. */}
+            {/* Реакции, комментарии и управление рецензией остаются компактной нижней строкой. */}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                 {review.text ? (
-                    <ReviewCommentsSheet
+                    <BookReviewInteractionControls
                         reviewId={review.id}
+                        initialLikesCount={review.likesCount}
+                        initialDislikesCount={review.dislikesCount}
                         initialCommentsCount={review.commentsCount}
+                        initialCurrentUserReaction={review.currentUserReaction}
                         bookPagePath={bookPagePath}
-                        triggerClassName="w-auto sm:min-w-36"
+                        className="mt-0"
                         onCommentsCountChange={onCommentsCountChange}
+                        onReactionChange={onReactionChange}
                     />
                 ) : null}
 
